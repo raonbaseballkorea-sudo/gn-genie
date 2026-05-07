@@ -1,0 +1,214 @@
+[
+  {
+    "order_type": "catalog",
+    "sport": "baseball",
+    "player_type": "adult",
+    "hand": "LHT",
+    "size": "11.25",
+    "position": "infield",
+    "web_type": "I-Web (Style 04)",
+    "colors": {
+      "wrist": "navy",
+      "wrist_hex": "#001f5b",
+      "welting": "navy",
+      "welting_hex": "#001f5b",
+      "lace": "blue",
+      "lace_hex": "#1a6fdb",
+      "bridge": "navy",
+      "bridge_hex": "#001f5b",
+      "web": "navy",
+      "web_hex": "#001f5b",
+      "palm_shell": "navy",
+      "palm_shell_hex": "#001f5b",
+      "piping": "navy",
+      "piping_hex": "#001f5b"
+    },
+    "color_changes": [
+      {
+        "part": "Wrist",
+        "color": "navy",
+        "hex": "#001f5b"
+      },
+      {
+        "part": "Welting",
+        "color": "navy",
+        "hex": "#001f5b"
+      },
+      {
+        "part": "Lace",
+        "color": "blue",
+        "hex": "#1a6fdb"
+      },
+      {
+        "part": "Bridge",
+        "color": "navy",
+        "hex": "#001f5b"
+      },
+      {
+        "part": "Web",
+        "color": "navy",
+        "hex": "#001f5b"
+      },
+      {
+        "part": "Palm Shell",
+        "color": "navy",
+        "hex": "#001f5b"
+      },
+      {
+        "part": "Piping",
+        "color": "navy",
+        "hex": "#001f5b"
+      }
+    ],
+    "embroidery": {
+      "name": {
+        "text": "",
+        "color": "",
+        "color_hex": "",
+        "location": ""
+      },
+      "flag": {
+        "country": "korea",
+        "location": "1"
+      }
+    },
+    "logo": {
+      "background": "navy",
+      "background_hex": "#001f5b",
+      "logo_color": "white",
+      "logo_color_hex": "#ffffff"
+    },
+    "customer": {
+      "name": "Raon Park",
+      "email": "photographer@parkraon.com",
+      "phone": "+306949035705",
+      "address": "Kafatari 5, Thessaloniki, Central Macedonia, Greece"
+    },
+    "special_requests": "",
+    "selected_glove": "gray-black_11.5_infield04",
+    "reference_photo": "/gloves/classic/gray-black_11.5_infield04.jpg",
+    "orderId": "GN-447J3O",
+    "orderDate": "May 4, 2026"
+  },
+  {
+    "order_type": "catalog",
+    "sport": "baseball",
+    "player_type": "adult",
+    "hand": "RHT",
+    "size": "13.0",
+    "position": "outfield",
+    "web_type": "As Per Reference Photo",
+    "colors": {
+      "wrist": "",
+      "wrist_hex": "",
+      "welting": "",
+      "welting_hex": "",
+      "lace": "",
+      "lace_hex": "",
+      "bridge": "",
+      "bridge_hex": "",
+      "web": "",
+      "web_hex": "",
+      "palm_shell": "",
+      "palm_shell_hex": "",
+      "piping": "",
+      "piping_hex": ""
+    },
+    "color_changes": [],
+    "embroidery": {
+      "name": {
+        "text": "박로빈",
+        "color": "red",
+        "color_hex": "#cc0000",
+        "location": "1"
+      },
+      "flag": {
+        "country": "korea",
+        "location": "3"
+      }
+    },
+    "logo": {
+      "background": "black",
+      "background_hex": "#1a1a1a",
+      "logo_color": "gold",
+      "logo_color_hex": "#c9a84c"
+    },
+    "customer": {
+      "name": "박로빈",
+      "email": "raonrobin@gmail.com",
+      "phone": "010-7170-7760",
+      "address": "광주 광역시 북구 무등로 68 4층"
+    },
+    "special_requests": "손이 큽니다. 입수부 사이즈를 크게 만들어 주세요.",
+    "selected_glove": "classic/gray-black_13.00_outfield09.jpg",
+    "reference_photo": "/gloves/classic/gray-black_13.00_outfield09.jpg",
+    "orderId": "GN-M4DAPO",
+    "orderDate": "May 6, 2026"
+  },
+  {
+    "order_type": "catalog",
+    "sport": "baseball",
+    "player_type": "adult",
+    "hand": "RHT",
+    "size": "12.00",
+    "position": "pitcher",
+    "web_type": "As Per Reference Photo",
+    "colors": {
+      "wrist": "",
+      "wrist_hex": "",
+      "welting": "",
+      "welting_hex": "",
+      "lace": "",
+      "lace_hex": "",
+      "bridge": "",
+      "bridge_hex": "",
+      "web": "",
+      "web_hex": "",
+      "palm_shell": "",
+      "palm_shell_hex": "",
+      "piping": "",
+      "piping_hex": ""
+    },
+    "color_changes": [
+      {
+        "part": "upper part of the design where the sprinkles are at",
+        "color": "brown",
+        "hex": "#8b4513"
+      },
+      {
+        "part": "Finger Hood Added",
+        "color": "same as shell color",
+        "hex": ""
+      }
+    ],
+    "embroidery": {
+      "name": {
+        "text": "Ραων",
+        "color": "bright mint",
+        "color_hex": "#98ff98",
+        "location": "1"
+      },
+      "flag": {
+        "country": "korea",
+        "location": "2"
+      }
+    },
+    "logo": {
+      "background": "original",
+      "background_hex": "",
+      "logo_color": "original",
+      "logo_color_hex": ""
+    },
+    "customer": {
+      "name": "Raon Park",
+      "email": "photographer@parkraon.com",
+      "phone": "+306949035705",
+      "address": "Greece, Central Macedonia, Thessaloniki, Kafantari 5"
+    },
+    "special_requests": "Customer requests a design preview before production begins.",
+    "selected_glove": "gelato/mint-pink_12.00_pitcher03.jpg",
+    "reference_photo": "/gloves/gelato/mint-pink_12.00_pitcher03.jpg",
+    "orderId": "GN-QTC34E",
+    "orderDate": "May 7, 2026"
+  }
+]
