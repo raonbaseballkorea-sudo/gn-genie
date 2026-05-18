@@ -6,7 +6,6 @@ import * as XLSX from 'xlsx';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
-const BASE_URL = 'https://30dayglove.com';
 
 function generateOrderId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -78,9 +77,11 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    const paymentUrl = `${BASE_URL}/payment?order=${orderId}`;
+    // Payment Link에 order ID 파라미터 추가
+    const paymentLink = process.env.STRIPE_PAYMENT_LINK || '';
+    const paymentUrl = `${paymentLink}?client_reference_id=${orderId}&prefilled_email=${encodeURIComponent(orderData.customer?.email || '')}`;
 
-    // 관리자(Robin)에게 발송 — 주문서 이미지 + 대화 내용 첨부
+    // Robin에게 발송 — 주문서 이미지 + 대화 내용 첨부
     await resend.emails.send({
       from: 'GN Glove <orders@30dayglove.com>',
       to: OWNER_EMAIL,
@@ -91,6 +92,7 @@ export async function POST(req: NextRequest) {
           <p style="color:#555;">From: <strong>${orderData.customer?.name}</strong> (${orderData.customer?.email})</p>
           <p style="color:#555;">Date: ${orderDate}</p>
           <p style="color:#888;font-size:13px;">Order sheet image and full chat history are attached.</p>
+          <p style="color:#e88;font-size:13px;">⏳ Awaiting payment from customer.</p>
           <hr style="border:0.5px solid #eee;margin:16px 0;"/>
           <p style="font-size:11px;color:#aaa;">GN GLOVE · 30dayglove.com</p>
         </div>
@@ -98,7 +100,7 @@ export async function POST(req: NextRequest) {
       attachments: adminAttachments,
     });
 
-    // 고객에게 발송 — 주문서 이미지만 첨부 (대화 내용 제외)
+    // 고객에게 발송 — 주문서 이미지 + 결제 버튼
     await resend.emails.send({
       from: 'GN Glove <orders@30dayglove.com>',
       to: orderData.customer?.email,

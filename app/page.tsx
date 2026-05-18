@@ -150,6 +150,8 @@ export default function ChatPage() {
 
     const firstImage = pinnedImage || uploadedImages[0];
 
+    const currentEmail = email || sessionStorage.getItem('gnEmail') || '';
+
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -157,7 +159,7 @@ export default function ChatPage() {
         messages: newMessages.map(m => ({ role: m.role, content: m.content === '[USER_IMAGE]' ? 'Here are my reference photos.' : m.content })),
         imageBase64: firstImage?.base64,
         imageType: firstImage?.type,
-        email,
+        email: currentEmail,
       }),
     });
     const data = await res.json();
@@ -170,9 +172,12 @@ export default function ChatPage() {
       if (pinnedGlove && !finalOrder.reference_photo && uploadedImages.length === 0) {
         finalOrder.reference_photo = pinnedGlove.src;
       }
+      // 이메일 누락 방지 — state에 없으면 sessionStorage에서 보완
+      if (!finalOrder.customer.email) {
+        finalOrder.customer.email = currentEmail;
+      }
       setOrderData(finalOrder);
-      setMessages([...newMessages, { role: 'assistant', content: data.message }]);
-      setTimeout(() => setStep('order'), 1500);
+      setStep('order');
     } else {
       setMessages([...newMessages, { role: 'assistant', content: data.message }]);
     }
@@ -214,7 +219,6 @@ export default function ChatPage() {
     setLoading(true);
     try {
       const orderImageBase64 = await captureOrderSheet();
-      // messages를 텍스트만 추출해서 전달 (이미지 base64 제외하여 용량 절약)
       const chatMessages = messages.map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/order', {
         method: 'POST',
@@ -250,7 +254,12 @@ export default function ChatPage() {
         </div>
       );
     }
-    const parts = content.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
+    // ORDER_COMPLETE 이후 JSON 블록 숨김
+    const cleanContent = content.includes('ORDER_COMPLETE:')
+      ? content.substring(0, content.indexOf('ORDER_COMPLETE:')).trim()
+      : content;
+
+    const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
     return parts.map((part, i) => {
       if (i % 2 === 1) {
         return <img key={i} src={`/gloves/${part}`} alt="glove" className="w-64 rounded-lg my-2 cursor-pointer" onClick={() => setModalImage(`/gloves/${part}`)} />;
@@ -374,7 +383,7 @@ export default function ChatPage() {
             <button
               onClick={() => {
                 setStep('chat');
-                setMessages([{ role: 'assistant', content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the glove style you have in mind, or describe what you're looking for!" }]);
+                setMessages([{ role: 'assistant', content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the maker your glove style you have in mind, or describe what you're looking for!" }]);
               }}
               className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg"
             >

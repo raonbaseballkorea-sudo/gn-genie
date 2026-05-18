@@ -215,6 +215,7 @@ export default function OrderSheet({
   const flagCountry = orderData.embroidery?.flag?.country || '';
   const flagFile = getFlagFile(flagCountry);
 
+  // 구조화된 색상 파트 (스와치로 표시)
   const colorParts = [
     { part: 'Wrist', value: orderData.colors?.wrist || orderData.colors?.shell, hex: orderData.colors?.wrist_hex },
     { part: 'Welting', value: orderData.colors?.welting, hex: orderData.colors?.welting_hex },
@@ -226,13 +227,39 @@ export default function OrderSheet({
   ].filter(({ value }) => value && value.trim() !== '');
 
   const standardPartNames = ['wrist', 'shell', 'welting', 'lace', 'bridge', 'web', 'palm shell', 'palm_shell', 'piping'];
-  const colorChanges = (
+
+  // 구조화된 color_changes (스와치로 표시 — Finger Pad/Hood 포함)
+  const structuredChanges = (
     orderData.color_changes?.filter((c: any) => {
       if (!c.part && !c.color) return false;
       const partLower = (c.part || '').toLowerCase();
-      return !standardPartNames.some(sp => partLower === sp || partLower.includes(sp));
+      // 표준 파트명과 정확히 일치하거나 Finger Pad/Hood인 경우
+      return standardPartNames.some(sp => partLower === sp || partLower.includes(sp)) ||
+        partLower.includes('finger pad') || partLower.includes('finger hood');
     }) || []
   );
+
+  // 자연어 color_changes (텍스트로 표시)
+  const freeformChanges = (
+    orderData.color_changes?.filter((c: any) => {
+      if (!c.part && !c.color) return false;
+      const partLower = (c.part || '').toLowerCase();
+      return !standardPartNames.some(sp => partLower === sp || partLower.includes(sp)) &&
+        !partLower.includes('finger pad') && !partLower.includes('finger hood');
+    }) || []
+  );
+
+  // Finger Pad / Hood (위치 맵용)
+  const allColorChanges = orderData.color_changes || [];
+  const fingerPadIndex = allColorChanges.find((c: any) =>
+    c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('index'));
+  const fingerPadMiddle = allColorChanges.find((c: any) =>
+    c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('middle'));
+  const fingerHood = allColorChanges.find((c: any) =>
+    c.part?.toLowerCase().includes('finger hood'));
+
+  const hasStructured = colorParts.length > 0 || structuredChanges.length > 0;
+  const hasFreeform = freeformChanges.length > 0;
 
   const specs = [
     ['Sport', `${orderData.sport || '-'} · ${orderData.player_type || '-'}`],
@@ -285,33 +312,89 @@ export default function OrderSheet({
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
             Color Changes
           </div>
-          {colorParts.length === 0 && colorChanges.length === 0 ? (
+
+          {!hasStructured && !hasFreeform ? (
             <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>All As Per Reference Photo</div>
           ) : (
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {colorParts.map(({ part, value, hex }) => (
-                <div key={part} style={{ textAlign: 'center' }}>
-                  <div style={{
-                    width: '30px', height: '30px', borderRadius: '3px',
-                    border: '0.5px solid #ccc', background: resolveColor(hex, value),
-                  }} />
-                  <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
-                  <div style={{ fontSize: '8px', color: '#aaa' }}>{part}</div>
+            <div style={{ display: 'flex', gap: '16px' }}>
+
+              {/* 왼쪽: 스와치 */}
+              {hasStructured && (
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {colorParts.map(({ part, value, hex }) => (
+                    <div key={part} style={{ textAlign: 'center' }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '3px',
+                        border: '0.5px solid #ccc', background: resolveColor(hex, value),
+                      }} />
+                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
+                      <div style={{ fontSize: '8px', color: '#aaa' }}>{part}</div>
+                    </div>
+                  ))}
+                  {structuredChanges.map((change: any, i: number) => (
+                    <div key={i} style={{ textAlign: 'center' }}>
+                      <div style={{
+                        width: '30px', height: '30px', borderRadius: '3px',
+                        border: '0.5px solid #ccc', background: resolveColor(change.hex || change.swatch, change.color),
+                      }} />
+                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{change.color}</div>
+                      <div style={{ fontSize: '8px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{change.part}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-              {colorChanges.map((change: any, i: number) => (
-                <div key={i} style={{ textAlign: 'center' }}>
-                  <div style={{
-                    width: '30px', height: '30px', borderRadius: '3px',
-                    border: '0.5px solid #ccc', background: resolveColor(change.hex || change.swatch, change.color),
-                  }} />
-                  <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{change.color}</div>
-                  <div style={{ fontSize: '8px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{change.part}</div>
+              )}
+
+              {/* 구분선 */}
+              {hasStructured && hasFreeform && (
+                <div style={{ width: '0.5px', background: '#e0e0e0', alignSelf: 'stretch', flexShrink: 0 }} />
+              )}
+
+              {/* 오른쪽: 자연어 변경사항 */}
+              {hasFreeform && (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>Additional Requests</div>
+                  {freeformChanges.map((change: any, i: number) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '6px',
+                      marginBottom: '4px', fontSize: '10px', color: '#333',
+                    }}>
+                      <span style={{ color: '#b8922a', fontWeight: 700, flexShrink: 0 }}>→</span>
+                      <span>
+                        <span style={{ fontWeight: 700 }}>{change.part}</span>
+                        {change.color && (
+                          <span style={{ color: '#555' }}> : {change.color}</span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
+
+              {/* 구조화 없이 자연어만 있는 경우 */}
+              {!hasStructured && hasFreeform && (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>Additional Requests</div>
+                  {freeformChanges.map((change: any, i: number) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'flex-start', gap: '6px',
+                      marginBottom: '4px', fontSize: '10px', color: '#333',
+                    }}>
+                      <span style={{ color: '#b8922a', fontWeight: 700, flexShrink: 0 }}>→</span>
+                      <span>
+                        <span style={{ fontWeight: 700 }}>{change.part}</span>
+                        {change.color && (
+                          <span style={{ color: '#555' }}> : {change.color}</span>
+                        )}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
             </div>
           )}
         </div>
+
         <div>
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
             Logo Patch
@@ -349,13 +432,6 @@ export default function OrderSheet({
               Finger Add-ons & Embroidery Position Map
             </div>
             {(() => {
-              // Finger Pad / Finger Hood 파싱
-              const fingerPadIndex = colorChanges.find((c: any) =>
-                c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('index'));
-              const fingerPadMiddle = colorChanges.find((c: any) =>
-                c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('middle'));
-              const fingerHood = colorChanges.find((c: any) =>
-                c.part?.toLowerCase().includes('finger hood'));
               const shellColor = resolveColor(orderData.colors?.wrist_hex, orderData.colors?.wrist || orderData.colors?.shell);
 
               const positions = [
@@ -376,36 +452,41 @@ export default function OrderSheet({
                   style={{ border: '0.5px solid #eee', borderRadius: '3px', background: '#fafafa' }}
                 >
                   {positions.map((p) => {
-                    const isEmbroidery =
-                      orderData.embroidery?.name?.location === p.n ||
-                      orderData.embroidery?.flag?.location === p.n;
+                    const nameLocation = orderData.embroidery?.name?.location;
+                    const flagLocation = orderData.embroidery?.flag?.location;
+                    const isNameEmbroidery = nameLocation === p.n;
+                    const isFlagEmbroidery = flagLocation === p.n;
+                    const isEmbroidery = isNameEmbroidery || isFlagEmbroidery;
 
-                    // Finger Pad 색상
                     let padColor = null;
                     if (p.n === '2' && fingerPadIndex) padColor = resolveColor(fingerPadIndex.hex, fingerPadIndex.color);
                     if (p.n === '3' && fingerPadMiddle) padColor = resolveColor(fingerPadMiddle.hex, fingerPadMiddle.color);
 
-                    // Finger Hood (검지 끝 표시)
                     const hasHood = p.n === '2' && fingerHood;
 
                     return (
                       <g key={p.n}>
-                        {/* 메인 원 */}
                         <circle
                           cx={p.cx} cy={p.cy} r={17}
                           fill={padColor || (isEmbroidery ? '#fef9c3' : '#f0f0f0')}
                           stroke={padColor ? '#555' : isEmbroidery ? '#f0c040' : '#bbb'}
-                          strokeWidth={padColor ? 1.5 : 1}
+                          strokeWidth={padColor ? 1.5 : isEmbroidery ? 1.5 : 1}
                         />
                         <text x={p.cx} y={p.cy - 2} textAnchor="middle" fontSize={10} fill={padColor ? '#fff' : '#333'} fontWeight={700}>{p.n}</text>
                         <text x={p.cx} y={p.cy + 9} textAnchor="middle" fontSize={7} fill={padColor ? '#eee' : '#666'}>{p.label}</text>
 
-                        {/* Finger Pad 뱃지 */}
+                        {/* 자수 표시 — 이름/국기 아이콘 */}
+                        {isNameEmbroidery && (
+                          <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={8} fill="#b8922a" fontWeight={700}>✍</text>
+                        )}
+                        {isFlagEmbroidery && (
+                          <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={8} fill="#b8922a" fontWeight={700}>🏁</text>
+                        )}
+
                         {padColor && (
                           <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={7} fill="#555" fontWeight={700}>PAD</text>
                         )}
 
-                        {/* Finger Hood 표시 — 검지 위쪽에 반원 */}
                         {hasHood && (
                           <g>
                             <path
@@ -422,7 +503,11 @@ export default function OrderSheet({
                   })}
 
                   {/* Inner 자수 영역 */}
-                  <rect x={2} y={90} width={414} height={18} rx={3} fill="#fff9e6" stroke="#f0c040" strokeWidth={0.5} />
+                  <rect x={2} y={90} width={414} height={18} rx={3}
+                    fill={orderData.embroidery?.name?.location === '9' || orderData.embroidery?.flag?.location === '9' ? '#fef9c3' : '#fff9e6'}
+                    stroke={orderData.embroidery?.name?.location === '9' || orderData.embroidery?.flag?.location === '9' ? '#f0c040' : '#e0e0e0'}
+                    strokeWidth={0.5}
+                  />
                   <text x={8} y={103} fontSize={9} fill="#555" fontWeight={700}>9 - Inner:</text>
                   {orderData.embroidery?.name?.location === '9' && (
                     <text x={72} y={103} fontSize={13} fill={resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color)} fontStyle="italic" fontFamily="Georgia, serif">
@@ -551,7 +636,7 @@ export default function OrderSheet({
         GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com
       </div>
 
-      {/* CONFIRM BUTTON — id로 캡처 시 숨김 처리 */}
+      {/* CONFIRM BUTTON */}
       <div id="confirm-btn-area" className="print:hidden">
         <button
           onClick={handleConfirm}
