@@ -342,7 +342,7 @@ export default function ChatPage() {
         </div>
       )}
 
-{(step === 'email' || step === 'verify' || step === 'select') && <Nav />}
+      {(step === 'email' || step === 'verify' || step === 'select') && <Nav />}
       {step === 'email' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
           <div className="mb-6">
