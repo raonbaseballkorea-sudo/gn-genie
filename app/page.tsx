@@ -150,7 +150,6 @@ export default function ChatPage() {
     setLoading(true);
 
     const firstImage = pinnedImage || uploadedImages[0];
-
     const currentEmail = email || sessionStorage.getItem('gnEmail') || '';
 
     const res = await fetch('/api/chat', {
@@ -167,16 +166,9 @@ export default function ChatPage() {
 
     if (data.orderComplete && data.orderData) {
       const finalOrder = { ...data.orderData };
-      if (uploadedImages.length > 0) {
-        finalOrder.reference_photos = uploadedImages;
-      }
-      if (pinnedGlove && !finalOrder.reference_photo && uploadedImages.length === 0) {
-        finalOrder.reference_photo = pinnedGlove.src;
-      }
-      // 이메일 누락 방지 — state에 없으면 sessionStorage에서 보완
-      if (!finalOrder.customer.email) {
-        finalOrder.customer.email = currentEmail;
-      }
+      if (uploadedImages.length > 0) finalOrder.reference_photos = uploadedImages;
+      if (pinnedGlove && !finalOrder.reference_photo && uploadedImages.length === 0) finalOrder.reference_photo = pinnedGlove.src;
+      if (!finalOrder.customer.email) finalOrder.customer.email = currentEmail;
       setOrderData(finalOrder);
       setStep('order');
     } else {
@@ -203,10 +195,7 @@ export default function ChatPage() {
       if (btn) btn.style.display = 'none';
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(orderSheetRef.current, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
       });
       if (btn) btn.style.display = '';
       return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
@@ -255,11 +244,9 @@ export default function ChatPage() {
         </div>
       );
     }
-    // ORDER_COMPLETE 이후 JSON 블록 숨김
     const cleanContent = content.includes('ORDER_COMPLETE:')
       ? content.substring(0, content.indexOf('ORDER_COMPLETE:')).trim()
       : content;
-
     const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
     return parts.map((part, i) => {
       if (i % 2 === 1) {
@@ -284,13 +271,9 @@ export default function ChatPage() {
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
           {uploadedImages.slice(0, 4).map((img, i) => (
-            <img
-              key={i}
-              src={`data:${img.type};base64,${img.base64}`}
-              alt={`ref ${i+1}`}
+            <img key={i} src={`data:${img.type};base64,${img.base64}`} alt={`ref ${i+1}`}
               style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
-              onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)}
-            />
+              onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)} />
           ))}
         </div>
       );
@@ -298,12 +281,9 @@ export default function ChatPage() {
     if (pinnedGlove) {
       return (
         <div className="flex items-center gap-2">
-          <img
-            src={pinnedGlove.src}
-            alt="pinned glove"
+          <img src={pinnedGlove.src} alt="pinned glove"
             style={{ height: '60px', width: 'auto', borderRadius: '6px', objectFit: 'cover', cursor: 'pointer' }}
-            onClick={() => setModalImage(pinnedGlove.src)}
-          />
+            onClick={() => setModalImage(pinnedGlove.src)} />
           <span className="text-xs text-gray-300">{pinnedGlove.label}</span>
         </div>
       );
@@ -311,52 +291,47 @@ export default function ChatPage() {
     return null;
   };
 
+  const killSwitch = process.env.NEXT_PUBLIC_KILL_SWITCH === 'true';
+
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
 
-      {/* 이미지 모달 */}
       {modalImage && (
-        <div
-          onClick={() => setModalImage(null)}
-          style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 9999, cursor: 'pointer', padding: '20px',
-          }}
-        >
-          <img
-            src={modalImage}
-            alt="full size"
-            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }}
-            onClick={e => e.stopPropagation()}
-          />
-          <button
-            onClick={() => setModalImage(null)}
-            style={{
-              position: 'absolute', top: '20px', right: '20px',
-              background: 'rgba(255,255,255,0.2)', color: 'white',
-              border: 'none', borderRadius: '50%', width: '36px', height: '36px',
-              fontSize: '18px', cursor: 'pointer',
-            }}
-          >✕</button>
+        <div onClick={() => setModalImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'pointer', padding: '20px' }}>
+          <img src={modalImage} alt="full size" style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} onClick={e => e.stopPropagation()} />
+          <button onClick={() => setModalImage(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer' }}>✕</button>
         </div>
       )}
 
       {(step === 'email' || step === 'verify' || step === 'select') && <Nav />}
+
       {step === 'email' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
-          <div className="mb-6">
-            <div className="text-yellow-400 text-xs font-bold tracking-widest uppercase mb-2">Korean Craft · Custom Order</div>
-            <h1 className="text-3xl font-black text-white leading-tight mb-3">Your Glove.<br/>Your Way.<br/><span className="text-yellow-400">$169. 30 Days.</span></h1>
-            <p className="text-gray-400 text-sm">Everything custom. Nothing extra.</p>
-          </div>
-          <div className="border-t border-gray-700 pt-5">
-            <p className="text-gray-500 text-xs mb-3">Enter your email to start. Your order summary will be sent here.</p>
-            <input className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-white" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendCode()} />
-            <button onClick={sendCode} disabled={loading} className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300">
-              {loading ? 'Sending...' : 'Start Designing →'}
-            </button>
-          </div>
+          {killSwitch ? (
+            <div className="text-center py-4">
+              <div className="text-4xl mb-4">🧤</div>
+              <h2 className="text-xl font-black text-yellow-400 mb-3">Currently At Full Capacity</h2>
+              <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                We're currently unable to guarantee our 30-day delivery promise due to high order volume. We'll be back soon!
+              </p>
+              <p className="text-gray-500 text-xs">Thank you for your patience. Please check back later.</p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-6">
+                <div className="text-yellow-400 text-xs font-bold tracking-widest uppercase mb-2">Korean Craft · Custom Order</div>
+                <h1 className="text-3xl font-black text-white leading-tight mb-3">Your Glove.<br/>Your Way.<br/><span className="text-yellow-400">$169. 30 Days.</span></h1>
+                <p className="text-gray-400 text-sm">Everything custom. Nothing extra.</p>
+              </div>
+              <div className="border-t border-gray-700 pt-5">
+                <p className="text-gray-500 text-xs mb-3">Enter your email to start. Your order summary will be sent here.</p>
+                <input className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-white" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendCode()} />
+                <button onClick={sendCode} disabled={loading} className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300">
+                  {loading ? 'Sending...' : 'Start Designing →'}
+                </button>
+              </div>
+            </>
+          )}
         </div>
       )}
 
@@ -376,19 +351,10 @@ export default function ChatPage() {
           <h1 className="text-2xl font-bold text-yellow-400 mb-2">How would you like to start?</h1>
           <p className="text-gray-400 mb-8">Browse our collection or upload a reference photo</p>
           <div className="flex flex-col gap-4">
-            <button
-              onClick={() => window.location.href = '/catalog'}
-              className="w-full bg-yellow-400 text-black font-bold py-4 rounded-xl hover:bg-yellow-300 text-lg"
-            >
+            <button onClick={() => window.location.href = '/catalog'} className="w-full bg-yellow-400 text-black font-bold py-4 rounded-xl hover:bg-yellow-300 text-lg">
               🧤 Browse Our Catalog
             </button>
-            <button
-              onClick={() => {
-                setStep('chat');
-                setMessages([{ role: 'assistant', content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the maker your glove style you have in mind, or describe what you're looking for!" }]);
-              }}
-              className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg"
-            >
+            <button onClick={() => { setStep('chat'); setMessages([{ role: 'assistant', content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the glove style you have in mind, or describe what you're looking for!" }]); }} className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg">
               📷 Upload My Photo
             </button>
           </div>
@@ -400,14 +366,12 @@ export default function ChatPage() {
           <div className="bg-gray-900 p-3 text-center">
             <h1 className="text-xl font-bold text-yellow-400">GN GLOVE Custom Consultant</h1>
           </div>
-
           {(uploadedImages.length > 0 || pinnedGlove) && (
             <div className="bg-gray-800 px-4 py-2 flex items-center gap-3 border-b border-gray-700">
               <div className="text-xs text-gray-400 whitespace-nowrap">Reference:</div>
               {renderPinnedImages()}
             </div>
           )}
-
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -419,7 +383,6 @@ export default function ChatPage() {
             {loading && <div className="text-gray-400 text-sm">Typing...</div>}
             <div ref={messagesEndRef} />
           </div>
-
           {images.length > 0 && (
             <div className="px-4 py-2 bg-gray-900 flex gap-2 flex-wrap">
               {images.map((img, i) => (
@@ -428,27 +391,13 @@ export default function ChatPage() {
                   <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer' }}>✕</button>
                 </div>
               ))}
-              {images.length < 4 && (
-                <div style={{ fontSize: '11px', color: '#888', alignSelf: 'center' }}>{4 - images.length} more allowed</div>
-              )}
+              {images.length < 4 && <div style={{ fontSize: '11px', color: '#888', alignSelf: 'center' }}>{4 - images.length} more allowed</div>}
             </div>
           )}
-
           <div className="p-4 bg-gray-900 flex gap-2 items-end">
-            {images.length < 4 && (
-              <button onClick={() => fileRef.current?.click()} className="bg-gray-700 p-3 rounded-lg hover:bg-gray-600 flex-shrink-0">📷</button>
-            )}
+            {images.length < 4 && <button onClick={() => fileRef.current?.click()} className="bg-gray-700 p3 rounded-lg hover:bg-gray-600 flex-shrink-0">📷</button>}
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImage} />
-            <textarea
-              ref={textareaRef}
-              className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed"
-              placeholder="Type a message... (Shift+Enter for new line)"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              rows={1}
-              style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }}
-            />
+            <textarea ref={textareaRef} className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed" placeholder="Type a message... (Shift+Enter for new line)" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }} />
             <button onClick={sendMessage} disabled={loading} className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0" style={{ height: '44px' }}>Send</button>
           </div>
         </div>
