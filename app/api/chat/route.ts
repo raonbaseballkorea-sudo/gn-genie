@@ -257,8 +257,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Please type a message or upload an image.' });
   }
 
+  // 👇 핵심 수정: 마지막 user 메시지 인덱스를 찾아서 이미지를 그 메시지에 첨부
+  const lastUserIdx = validMessages.map((m: any) => m.role).lastIndexOf('user');
+
   const formattedMessages = validMessages.map((msg: any, idx: number) => {
-    if (msg.role === 'user' && imageBase64 && idx === 0) {
+    if (msg.role === 'user' && imageBase64 && idx === lastUserIdx) {
       const content: any[] = [
         { type: 'image', source: { type: 'base64', media_type: imageType, data: imageBase64 } },
         { type: 'text', text: msg.content }
