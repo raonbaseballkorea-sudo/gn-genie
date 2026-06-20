@@ -166,8 +166,15 @@ export default function ChatPage() {
 
     if (data.orderComplete && data.orderData) {
       const finalOrder = { ...data.orderData };
-      if (uploadedImages.length > 0) finalOrder.reference_photos = uploadedImages;
-      if (pinnedGlove && !finalOrder.reference_photo && uploadedImages.length === 0) finalOrder.reference_photo = pinnedGlove.src;
+
+      // 프론트에서 직접 base64 주입 — Haiku 텍스트 설명 덮어쓰기
+      if (uploadedImages.length > 0) {
+        finalOrder.reference_photos = uploadedImages;
+        finalOrder.reference_photo = `data:${uploadedImages[0].type};base64,${uploadedImages[0].base64}`;
+      } else if (pinnedGlove && !finalOrder.reference_photo) {
+        finalOrder.reference_photo = pinnedGlove.src;
+      }
+
       if (!finalOrder.customer.email) finalOrder.customer.email = currentEmail;
       setOrderData(finalOrder);
       setStep('order');

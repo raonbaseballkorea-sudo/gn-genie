@@ -42,8 +42,11 @@ Then proceed:
 2. Ask if adult or youth
 3. Ask if LHT or RHT
 4. Ask about size and position
-5. DO NOT analyze or describe the colors in the photo. DO NOT list color parts. Simply ask: "Is there anything you'd like to change from the reference photo? If not, we'll follow the photo as closely as possible." — DO NOT list what can be changed.
+5. DO NOT analyze or describe the colors in the photo. DO NOT list color parts. Simply ask: "Is there anything you'd like to change from the reference photo? If not, we'll follow the photo as closely as possible." — DO NOT list what can be changed. If the customer asks what can be changed, then explain. If they request a change, record it in their own words.
    CRITICAL: Ask this question ONLY ONCE. If the customer has already answered (e.g. "no", "없습니다", "none", "nope", or any affirmative/negative response), immediately move to step 6 (embroidery). Do NOT repeat this question under any circumstances. Do NOT re-describe the photo after the customer has responded.
+   - DO NOT ask about web style — the web is visible in the photo and will be followed as shown.
+   - If customer wants a DIFFERENT WEB STYLE than shown in the photo, ask them to upload a photo of the web style they want.
+   - Any other requests that cannot be captured as a structured field → record in color_changes with the customer's exact words as the part name and the requested color as the color field. Do NOT put color change requests in special_requests.
 6. Ask embroidery options: first ask about name embroidery (text, color, location), then separately ask about flag embroidery (country and location — use same position numbers: 1=Thumb, 2=Index, 3=Middle, 4=Ring, 5=Pinky, 7=Web pitcher only, 9=Inner)
 7. REQUIRED - Ask logo options: background color and logo color (GN logo will be used)
 8. Ask for customer information (name, phone, shipping address including ZIP/postal code) — DO NOT ask for email, it's already provided. CRITICAL: If the customer provides an address without a ZIP/postal code, ask for it before proceeding.
@@ -255,7 +258,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: 'Please type a message or upload an image.' });
   }
 
-  // 👇 핵심 수정: 마지막 user 메시지 인덱스를 찾아서 이미지를 그 메시지에 첨부
   const lastUserIdx = validMessages.map((m: any) => m.role).lastIndexOf('user');
 
   const formattedMessages = validMessages.map((msg: any, idx: number) => {
@@ -291,7 +293,6 @@ export async function POST(req: NextRequest) {
       try {
         let jsonStr = text.substring(jsonStart, jsonEnd + 1);
 
-        // 문자열 값 내부의 줄바꿈/탭 제거 (JSON 파싱 실패 방지)
         jsonStr = jsonStr.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
           return match
             .replace(/\n/g, ' ')
@@ -301,7 +302,14 @@ export async function POST(req: NextRequest) {
 
         const parsed = JSON.parse(jsonStr);
         parsed.customer.email = email;
-        if (imageBase64) parsed.reference_photo = `data:${imageType};base64,${imageBase64}`;
+
+        // reference_photo: imageBase64가 있으면 base64 사용, 없으면 빈 문자열로 초기화
+        if (imageBase64) {
+          parsed.reference_photo = `data:${imageType};base64,${imageBase64}`;
+        } else {
+          parsed.reference_photo = '';
+        }
+
         return NextResponse.json({ message: text, orderComplete: true, orderData: parsed });
       } catch (e) {
         console.log('Parse error:', e);
