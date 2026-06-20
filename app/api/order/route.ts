@@ -1,11 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { Resend } from 'resend';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as XLSX from 'xlsx';
+import nodemailer from 'nodemailer';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
+const SMTP_USER = 'raonbaseball@30dayglove.com';
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.hostinger.com',
+  port: 465,
+  secure: true,
+  auth: {
+    user: SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
+  },
+});
 
 function generateOrderId(): string {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -53,7 +63,6 @@ export async function POST(req: NextRequest) {
   try {
     const { orderData, orderImageBase64, messages } = await req.json();
 
-    // 디버그 로그
     console.log('[ORDER] customer email:', orderData?.customer?.email);
     console.log('[ORDER] customer name:', orderData?.customer?.name);
     console.log('[ORDER] orderImageBase64 present:', !!orderImageBase64);
@@ -69,26 +78,24 @@ export async function POST(req: NextRequest) {
       attachments.push({
         filename: `order-${orderId}.jpg`,
         content: Buffer.from(orderImageBase64, 'base64'),
+        contentType: 'image/jpeg',
       });
     }
 
     const chatHistory = formatChatHistory(messages || []);
-    const chatBuffer = Buffer.from(chatHistory, 'utf-8');
-    const adminAttachments = [
-      ...attachments,
-      {
-        filename: `chat-${orderId}.txt`,
-        content: chatBuffer,
-      },
-    ];
+    attachments.push({
+      filename: `chat-${orderId}.txt`,
+      content: Buffer.from(chatHistory, 'utf-8'),
+      contentType: 'text/plain',
+    });
 
     const paymentLink = process.env.STRIPE_PAYMENT_LINK || '';
     const paymentUrl = `${paymentLink}?client_reference_id=${orderId}&prefilled_email=${encodeURIComponent(orderData.customer?.email || '')}`;
 
     // Robin에게 발송
-    console.log('[ORDER] Sending admin email to:', OWNER_EMAIL);
-    const adminResult = await resend.emails.send({
-      from: 'GN Glove <orders@30dayglove.com>',
+    console.log('[ORDER] Sending admin email...');
+    await transporter.sendMail({
+      from: `GN Glove <${SMTP_USER}>`,
       to: OWNER_EMAIL,
       subject: `New Order: ${orderId} — ${orderData.customer?.name}`,
       html: `
@@ -102,16 +109,16 @@ export async function POST(req: NextRequest) {
           <p style="font-size:11px;color:#aaa;">GN GLOVE · 30dayglove.com</p>
         </div>
       `,
-      attachments: adminAttachments,
+      attachments,
     });
-    console.log('[ORDER] Admin email result:', JSON.stringify(adminResult));
+    console.log('[ORDER] Admin email sent.');
 
-    // 고객에게 발송 — 이메일 있을 때만
+    // 고객에게 발송
     const customerEmail = orderData.customer?.email;
     if (customerEmail) {
       console.log('[ORDER] Sending customer email to:', customerEmail);
-      const customerResult = await resend.emails.send({
-        from: 'GN Glove <orders@30dayglove.com>',
+      await transporter.sendMail({
+        from: `GN Glove <${SMTP_USER}>`,
         to: customerEmail,
         subject: `Your GN Glove Order — ${orderId}`,
         html: `
@@ -134,18 +141,17 @@ export async function POST(req: NextRequest) {
             <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
           </div>
         `,
-        attachments: attachments.length > 0 ? attachments : undefined,
+        attachments: orderImageBase64 ? [attachments[0]] : undefined,
       });
-      console.log('[ORDER] Customer email result:', JSON.stringify(customerResult));
+      console.log('[ORDER] Customer email sent.');
     } else {
-      console.log('[ORDER] WARNING: No customer email — skipping customer email send');
+      console.log('[ORDER] WARNING: No customer email — skipping.');
     }
 
     return NextResponse.json({ success: true, orderId });
 
   } catch (error: any) {
     console.error('[ORDER] Error:', error?.message || error);
-    console.error('[ORDER] Stack:', error?.stack);
     return NextResponse.json({ error: 'Order failed', detail: error?.message }, { status: 500 });
   }
 }
@@ -179,17 +185,16 @@ export async function GET(req: NextRequest) {
     XLSX.utils.book_append_sheet(wb, ws, weekKey);
     const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
 
-    await resend.emails.send({
-      from: 'GN Glove <orders@30dayglove.com>',
+    await transporter.sendMail({
+      from: `GN Glove <${SMTP_USER}>`,
       to: OWNER_EMAIL,
       subject: `Weekly Orders — ${weekKey} (${orders.length} orders)`,
       html: `<p>Weekly order summary attached. Total: <strong>${orders.length} orders</strong></p>`,
-      attachments: [
-        {
-          filename: `orders-${weekKey}.xlsx`,
-          content: buffer,
-        },
-      ],
+      attachments: [{
+        filename: `orders-${weekKey}.xlsx`,
+        content: buffer,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }],
     });
 
     return NextResponse.json({ success: true, orders: orders.length });
