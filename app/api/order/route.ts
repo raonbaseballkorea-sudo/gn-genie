@@ -52,6 +52,12 @@ function formatChatHistory(messages: { role: string; content: string }[]): strin
 export async function POST(req: NextRequest) {
   try {
     const { orderData, orderImageBase64, messages } = await req.json();
+
+    // 디버그 로그
+    console.log('[ORDER] customer email:', orderData?.customer?.email);
+    console.log('[ORDER] customer name:', orderData?.customer?.name);
+    console.log('[ORDER] orderImageBase64 present:', !!orderImageBase64);
+
     const orderId = generateOrderId();
     const orderDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
     const fullOrder = { ...orderData, orderId, orderDate };
@@ -66,7 +72,6 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // 대화 내용 텍스트 파일 생성
     const chatHistory = formatChatHistory(messages || []);
     const chatBuffer = Buffer.from(chatHistory, 'utf-8');
     const adminAttachments = [
@@ -77,12 +82,12 @@ export async function POST(req: NextRequest) {
       },
     ];
 
-    // Payment Link에 order ID 파라미터 추가
     const paymentLink = process.env.STRIPE_PAYMENT_LINK || '';
     const paymentUrl = `${paymentLink}?client_reference_id=${orderId}&prefilled_email=${encodeURIComponent(orderData.customer?.email || '')}`;
 
-    // Robin에게 발송 — 주문서 이미지 + 대화 내용 첨부
-    await resend.emails.send({
+    // Robin에게 발송
+    console.log('[ORDER] Sending admin email to:', OWNER_EMAIL);
+    const adminResult = await resend.emails.send({
       from: 'GN Glove <orders@30dayglove.com>',
       to: OWNER_EMAIL,
       subject: `New Order: ${orderId} — ${orderData.customer?.name}`,
@@ -99,40 +104,49 @@ export async function POST(req: NextRequest) {
       `,
       attachments: adminAttachments,
     });
+    console.log('[ORDER] Admin email result:', JSON.stringify(adminResult));
 
-    // 고객에게 발송 — 주문서 이미지 + 결제 버튼
-    await resend.emails.send({
-      from: 'GN Glove <orders@30dayglove.com>',
-      to: orderData.customer?.email,
-      subject: `Your GN Glove Order — ${orderId}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h2 style="color:#111;letter-spacing:2px;">GN GLOVE</h2>
-          <p style="color:#555;">Hi <strong>${orderData.customer?.name}</strong>,</p>
-          <p style="color:#555;">Your order <strong style="color:#b8922a;">${orderId}</strong> has been received.</p>
-          <p style="color:#555;">Please review your order sheet (attached) and complete your payment to begin production.</p>
-          <div style="text-align:center;margin:32px 0;">
-            <a href="${paymentUrl}"
-               style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
-              COMPLETE PAYMENT — $169 →
-            </a>
+    // 고객에게 발송 — 이메일 있을 때만
+    const customerEmail = orderData.customer?.email;
+    if (customerEmail) {
+      console.log('[ORDER] Sending customer email to:', customerEmail);
+      const customerResult = await resend.emails.send({
+        from: 'GN Glove <orders@30dayglove.com>',
+        to: customerEmail,
+        subject: `Your GN Glove Order — ${orderId}`,
+        html: `
+          <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+            <h2 style="color:#111;letter-spacing:2px;">GN GLOVE</h2>
+            <p style="color:#555;">Hi <strong>${orderData.customer?.name}</strong>,</p>
+            <p style="color:#555;">Your order <strong style="color:#b8922a;">${orderId}</strong> has been received.</p>
+            <p style="color:#555;">Please review your order sheet (attached) and complete your payment to begin production.</p>
+            <div style="text-align:center;margin:32px 0;">
+              <a href="${paymentUrl}"
+                 style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
+                COMPLETE PAYMENT — $169 →
+              </a>
+            </div>
+            <p style="color:#aaa;font-size:11px;text-align:center;">
+              Our craftsmen will begin production within 24 hours of payment.<br/>
+              Your glove will arrive at your door within 30 days.
+            </p>
+            <hr style="border:0.5px solid #eee;margin:20px 0;"/>
+            <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
           </div>
-          <p style="color:#aaa;font-size:11px;text-align:center;">
-            Our craftsmen will begin production within 24 hours of payment.<br/>
-            Your glove will arrive at your door within 30 days.
-          </p>
-          <hr style="border:0.5px solid #eee;margin:20px 0;"/>
-          <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
-        </div>
-      `,
-      attachments: attachments.length > 0 ? attachments : undefined,
-    });
+        `,
+        attachments: attachments.length > 0 ? attachments : undefined,
+      });
+      console.log('[ORDER] Customer email result:', JSON.stringify(customerResult));
+    } else {
+      console.log('[ORDER] WARNING: No customer email — skipping customer email send');
+    }
 
     return NextResponse.json({ success: true, orderId });
 
-  } catch (error) {
-    console.error('Order error:', error);
-    return NextResponse.json({ error: 'Order failed' }, { status: 500 });
+  } catch (error: any) {
+    console.error('[ORDER] Error:', error?.message || error);
+    console.error('[ORDER] Stack:', error?.stack);
+    return NextResponse.json({ error: 'Order failed', detail: error?.message }, { status: 500 });
   }
 }
 

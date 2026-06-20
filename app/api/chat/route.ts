@@ -27,7 +27,14 @@ In this case:
    - If customer wants a DIFFERENT WEB STYLE than shown in the photo, ask them to upload a photo of the web style they want.
    - Any other requests that cannot be captured as a structured field → record in color_changes with the customer's exact words as the part name and the requested color as the color field. Do NOT put color change requests in special_requests.
 7. Ask embroidery options: first ask about name embroidery (text, color, location), then separately ask about flag embroidery (country and location — use same position numbers: 1=Thumb, 2=Index, 3=Middle, 4=Ring, 5=Pinky, 7=Web pitcher only, 9=Inner)
-8. Ask logo options: background color and logo color (GN logo will be used)
+8. REQUIRED - Ask logo options for the GN logo patch:
+   "For the GN logo patch on your glove, what colors would you like?
+   - Background color (the shape behind the logo)
+   - GN letter color
+   For example: black background with gold letters."
+   CRITICAL: Do NOT accept vague answers like "same as photo", "as shown", "참조 사진대로", "그대로", or any non-specific response.
+   If the customer gives a vague answer, ask again: "Could you describe the specific colors? For example: black background, gold letters — or any colors you'd like!"
+   Do NOT move to the next step until BOTH background color AND logo color are clearly and specifically named by the customer.
 9. Ask for customer information (name, phone, shipping address including ZIP/postal code) — DO NOT ask for email, it's already provided. CRITICAL: If the customer provides an address without a ZIP/postal code, ask for it before proceeding.
 10. CRITICAL - NEVER SKIP: Ask the craftsman message exactly like this: "✍️ Would you like to leave a message for the craftsman who will be making your glove? This goes directly to the maker's workbench — anything you'd like them to know." If customer has nothing, record as empty. But MUST ask every time.
 11. Summarize and confirm
@@ -48,7 +55,14 @@ Then proceed:
    - If customer wants a DIFFERENT WEB STYLE than shown in the photo, ask them to upload a photo of the web style they want.
    - Any other requests that cannot be captured as a structured field → record in color_changes with the customer's exact words as the part name and the requested color as the color field. Do NOT put color change requests in special_requests.
 6. Ask embroidery options: first ask about name embroidery (text, color, location), then separately ask about flag embroidery (country and location — use same position numbers: 1=Thumb, 2=Index, 3=Middle, 4=Ring, 5=Pinky, 7=Web pitcher only, 9=Inner)
-7. REQUIRED - Ask logo options: background color and logo color (GN logo will be used)
+7. REQUIRED - Ask logo options for the GN logo patch:
+   "For the GN logo patch on your glove, what colors would you like?
+   - Background color (the shape behind the logo)
+   - GN letter color
+   For example: black background with gold letters."
+   CRITICAL: Do NOT accept vague answers like "same as photo", "as shown", "참조 사진대로", "그대로", or any non-specific response.
+   If the customer gives a vague answer, ask again: "Could you describe the specific colors? For example: black background, gold letters — or any colors you'd like!"
+   Do NOT move to the next step until BOTH background color AND logo color are clearly and specifically named by the customer.
 8. Ask for customer information (name, phone, shipping address including ZIP/postal code) — DO NOT ask for email, it's already provided. CRITICAL: If the customer provides an address without a ZIP/postal code, ask for it before proceeding.
 9. CRITICAL - NEVER SKIP: Ask the craftsman message exactly like this: "✍️ Would you like to leave a message for the craftsman who will be making your glove? This goes directly to the maker's workbench — anything you'd like them to know." If customer has nothing, record as empty. But MUST ask every time.
 10. Summarize and confirm
@@ -84,6 +98,7 @@ NEVER put the same change in BOTH colors object AND color_changes — choose one
 - Palm Shell: palm side leather
 - Piping: edge trim around the glove
 - Finger panels/inserts: varies by pattern — customer describes in their own words
+
 ## Add-on options (ONLY when customer requests — NEVER suggest proactively)
 These are additions to the glove, not color changes. Record in color_changes with "Add" in the part name.
 
@@ -303,7 +318,6 @@ export async function POST(req: NextRequest) {
         const parsed = JSON.parse(jsonStr);
         parsed.customer.email = email;
 
-        // reference_photo: imageBase64가 있으면 base64 사용, 없으면 빈 문자열로 초기화
         if (imageBase64) {
           parsed.reference_photo = `data:${imageType};base64,${imageBase64}`;
         } else {
