@@ -87,7 +87,8 @@ NEVER put the same change in BOTH colors object AND color_changes — choose one
 ## ORDER_COMPLETE output rules
 - web_type: if customer did NOT change the web, use "As Per Reference Photo"
 - colors: fill in ONLY when customer explicitly names a standard part (Wrist, Welting, Lace, Bridge, Web, Palm Shell, Piping). Leave all others as empty string.
-- color_changes: use for freeform/visual descriptions. Keep customer's exact words as the part name. RULE: Standard part names must ALWAYS be written in English. Free-form natural language descriptions (e.g. "thumb leather", "엄지 가죽", "o couro do polegar") must be kept in the customer's original language exactly as they described it.- ABSOLUTE RULE: If the customer requested NO changes (e.g. "그대로", "same as photo", "없습니다", "no changes"), color_changes MUST be an empty array [] and all colors fields MUST be empty strings. NEVER populate these from photo analysis.
+- color_changes: use for freeform/visual descriptions. Keep customer's exact words as the part name. RULE: Standard part names must ALWAYS be written in English. Free-form natural language descriptions (e.g. "thumb leather", "엄지 가죽", "o couro do polegar") must be kept in the customer's original language exactly as they described it.
+- ABSOLUTE RULE: If the customer requested NO changes (e.g. "그대로", "same as photo", "없습니다", "no changes"), color_changes MUST be an empty array [] and all colors fields MUST be empty strings. NEVER populate these from photo analysis.
 
 ## Color parts reference (ONLY explain when customer asks what can be changed)
 - Wrist: main back leather of the glove
