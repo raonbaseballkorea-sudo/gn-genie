@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -37,6 +38,11 @@ export async function POST(req: NextRequest) {
 
 // 답변 달기 (관리자)
 export async function PATCH(req: NextRequest) {
+  const ip = getClientIp(req);
+  if (!rateLimit(`qna-admin:${ip}`, 5, 60_000)) {
+    return NextResponse.json({ error: '잠시 후 다시 시도해주세요' }, { status: 429 });
+  }
+
   const { id, reply, adminPassword } = await req.json();
 
   if (adminPassword !== process.env.ADMIN_PASSWORD) {

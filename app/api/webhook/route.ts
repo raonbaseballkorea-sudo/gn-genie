@@ -6,21 +6,41 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 const resend = new Resend(process.env.RESEND_API_KEY);
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
 
+// Stripe가 동일 이벤트를 재전송할 수 있어, 처리한 이벤트 ID를 기억해 중복 메일 발송을 막음
+const processedEvents = new Map<string, number>();
+const PROCESSED_TTL_MS = 24 * 60 * 60 * 1000;
+
+function alreadyProcessed(eventId: string): boolean {
+  const now = Date.now();
+  for (const [id, ts] of processedEvents) {
+    if (now - ts > PROCESSED_TTL_MS) processedEvents.delete(id);
+  }
+  if (processedEvents.has(eventId)) return true;
+  processedEvents.set(eventId, now);
+  return false;
+}
+
 export async function POST(req: NextRequest) {
+  const secret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!secret) {
+    console.error('STRIPE_WEBHOOK_SECRET not configured');
+    return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+  }
+
   const body = await req.text();
   const sig = req.headers.get('stripe-signature')!;
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    event = stripe.webhooks.constructEvent(body, sig, secret);
   } catch (err: any) {
     console.error('Webhook signature verification failed:', err.message);
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 });
+  }
+
+  if (alreadyProcessed(event.id)) {
+    return NextResponse.json({ received: true });
   }
 
   if (event.type === 'checkout.session.completed') {

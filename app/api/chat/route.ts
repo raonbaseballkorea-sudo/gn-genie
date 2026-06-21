@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Anthropic from '@anthropic-ai/sdk';
+import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -217,6 +218,8 @@ CRITICAL: In ORDER_COMPLETE JSON, location fields must use numbers only. e.g. "l
 ## ORDER_COMPLETE format
 CRITICAL: When customer confirms the order in ANY language, you MUST output ORDER_COMPLETE followed by raw JSON. Do NOT use markdown tables instead. Do NOT wrap in \`\`\`json code blocks. This is mandatory regardless of conversation language.
 
+CRITICAL: size field must be a plain number string with no inch symbol. Write "11.5" not '11.5"' and not "11.5\\"".
+
 CRITICAL COLOR RULE: For EVERY color field, you MUST provide both the color name AND the hex code.
 - Use standard hex codes: black=#1a1a1a, white=#ffffff, red=#cc0000, navy=#001f5b, brown=#8b4513, tan=#d2b48c, gold=#c9a84c, orange=#ff8c00, blue=#1a6fdb, royal=#4169e1, green=#228b22, pink=#ffb6c1, purple=#800080, gray=#808080, yellow=#ffff00, silver=#c0c0c0, caramel=#c68642, mint=#98ff98, cream=#fffdd0, coral=#ff7f50, teal=#008080, maroon=#800000, burgundy=#800020, turquoise=#40e0d0, lavender=#e6e6fa, peach=#ffcba4, ivory=#fffff0, skyblue=#87ceeb
 - For any color not listed above, provide your best estimated hex code
@@ -262,7 +265,82 @@ ORDER_COMPLETE:
   "reference_photo": ""
 }`;
 
+// ORDER_COMPLETE JSON을 텍스트에서 추출하는 함수
+function extractOrderJson(text: string): string | null {
+  // 1) "ORDER_COMPLETE:" 또는 "## ORDER_COMPLETE" 등 다양한 패턴 탐지
+  const patterns = [
+    /ORDER_COMPLETE\s*:/,
+    /##\s*ORDER_COMPLETE/,
+    /ORDER_COMPLETE/,
+  ];
+
+  let searchFrom = -1;
+  for (const pattern of patterns) {
+    const match = pattern.exec(text);
+    if (match) {
+      searchFrom = match.index;
+      console.log('[ROUTE] ORDER_COMPLETE found at index:', searchFrom, 'pattern:', pattern);
+      break;
+    }
+  }
+
+  // ORDER_COMPLETE 키워드가 없으면 텍스트 전체에서 마지막 { 를 fallback으로 사용
+  const jsonStart = searchFrom !== -1
+    ? text.indexOf('{', searchFrom)
+    : text.lastIndexOf('{');
+
+  if (jsonStart === -1) {
+    console.log('[ROUTE] No JSON start found');
+    return null;
+  }
+
+  // 중괄호 depth 추적으로 JSON 끝 찾기
+  let depth = 0;
+  let jsonEnd = -1;
+  for (let i = jsonStart; i < text.length; i++) {
+    if (text[i] === '{') depth++;
+    else if (text[i] === '}') {
+      depth--;
+      if (depth === 0) {
+        jsonEnd = i;
+        break;
+      }
+    }
+  }
+
+  if (jsonEnd === -1) {
+    console.log('[ROUTE] No JSON end found');
+    return null;
+  }
+
+  return text.substring(jsonStart, jsonEnd + 1);
+}
+
+// JSON 문자열 정리 함수
+function sanitizeJsonString(raw: string): string {
+  // 1) 코드블록 펜스 제거
+  let s = raw.replace(/```json\s*/g, '').replace(/```\s*/g, '');
+
+  // 2) 인치 기호 이스케이프 처리: "11.5\"" → "11.5"
+  //    문자열 값 안의 \" 를 inch 표시로 쓴 경우 제거
+  s = s.replace(/"(\d+(?:\.\d+)?)\\"/g, '"$1"');
+
+  // 3) JSON 문자열 값 내부의 실제 줄바꿈/탭 제거 (문자열 값 안만)
+  s = s.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
+    return match
+      .replace(/\n/g, ' ')
+      .replace(/\r/g, ' ')
+      .replace(/\t/g, ' ');
+  });
+
+  return s;
+}
+
 export async function POST(req: NextRequest) {
+  if (!rateLimit(getClientIp(req), 20, 60_000)) {
+    return NextResponse.json({ error: '요청이 너무 많습니다. 잠시 후 다시 시도해주세요.' }, { status: 429 });
+  }
+
   const { messages, imageBase64, imageType, email } = await req.json();
 
   const validMessages = messages.filter((msg: any) => {
@@ -295,42 +373,46 @@ export async function POST(req: NextRequest) {
   });
 
   const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
-  const text = rawText.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-  const orderStart = text.indexOf('ORDER_COMPLETE:');
-  if (orderStart !== -1) {
-    const jsonStart = text.indexOf('{', orderStart);
-    let depth = 0, jsonEnd = -1;
-    for (let i = jsonStart; i < text.length; i++) {
-      if (text[i] === '{') depth++;
-      else if (text[i] === '}') { depth--; if (depth === 0) { jsonEnd = i; break; } }
-    }
-    if (jsonEnd !== -1) {
-      try {
-        let jsonStr = text.substring(jsonStart, jsonEnd + 1);
+  // 디버그: 응답 텍스트에 ORDER_COMPLETE 포함 여부 확인
+  console.log('[ROUTE] Response includes ORDER_COMPLETE:', rawText.includes('ORDER_COMPLETE'));
+  console.log('[ROUTE] Response tail (last 200 chars):', rawText.slice(-200));
 
-        jsonStr = jsonStr.replace(/"([^"\\]*(\\.[^"\\]*)*)"/g, (match) => {
-          return match
-            .replace(/\n/g, ' ')
-            .replace(/\r/g, ' ')
-            .replace(/\t/g, ' ');
-        });
+  const rawJson = extractOrderJson(rawText);
 
-        const parsed = JSON.parse(jsonStr);
-        parsed.customer.email = email;
+  if (rawJson) {
+    console.log('[ROUTE] Extracted rawJson (first 300):', rawJson.substring(0, 300));
 
-        if (imageBase64) {
-          parsed.reference_photo = `data:${imageType};base64,${imageBase64}`;
-        } else {
-          parsed.reference_photo = '';
-        }
+    try {
+      const cleanJson = sanitizeJsonString(rawJson);
+      console.log('[ROUTE] cleanJson (first 300):', cleanJson.substring(0, 300));
 
-        return NextResponse.json({ message: text, orderComplete: true, orderData: parsed });
-      } catch (e) {
-        console.log('Parse error:', e);
+      const parsed = JSON.parse(cleanJson);
+
+      // order_type 필드로 실제 주문 JSON인지 확인
+      if (!parsed.order_type) {
+        console.log('[ROUTE] No order_type field — not a valid order JSON');
+        return NextResponse.json({ message: rawText });
       }
+
+      // 이메일 주입
+      parsed.customer.email = email || '';
+
+      // 레퍼런스 사진 처리
+      if (imageBase64) {
+        parsed.reference_photo = `data:${imageType};base64,${imageBase64}`;
+      } else {
+        parsed.reference_photo = parsed.reference_photo || '';
+      }
+
+      console.log('[ROUTE] ORDER_COMPLETE parsed successfully');
+      return NextResponse.json({ message: rawText, orderComplete: true, orderData: parsed });
+
+    } catch (e) {
+      console.error('[ROUTE] JSON parse error:', e);
+      console.error('[ROUTE] Failed JSON string:', rawJson.substring(0, 500));
     }
   }
 
-  return NextResponse.json({ message: text });
+  return NextResponse.json({ message: rawText });
 }
