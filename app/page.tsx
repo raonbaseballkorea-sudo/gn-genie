@@ -18,15 +18,29 @@ export default function ChatPage() {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<{ base64: string; type: string }[]>([]);
-  const [uploadedImages, setUploadedImages] = useState<{ base64: string; type: string }[]>([]);
-  const [pinnedImage, setPinnedImage] = useState<{ base64: string; type: string } | null>(null);
-  const [pinnedGlove, setPinnedGlove] = useState<{ src: string; label: string } | null>(null);
   const [orderData, setOrderData] = useState<any>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
+
+  // useRef — 렌더링과 무관하게 항상 최신값 유지
+  const uploadedImagesRef = useRef<{ base64: string; type: string }[]>([]);
+  const pinnedImageRef = useRef<{ base64: string; type: string } | null>(null);
+  const pinnedGloveRef = useRef<{ src: string; label: string } | null>(null);
+  const emailRef = useRef<string>('');
+
+  // 화면 표시용 state (ref와 동기화)
+  const [uploadedImagesDisplay, setUploadedImagesDisplay] = useState<{ base64: string; type: string }[]>([]);
+  const [pinnedGloveDisplay, setPinnedGloveDisplay] = useState<{ src: string; label: string } | null>(null);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const orderSheetRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // ORDER_COMPLETE 텍스트가 시작되는 인덱스를 찾는 헬퍼
+  const findOrderCompleteIndex = (text: string): number => {
+    const idx = text.search(/ORDER_COMPLETE/);
+    return idx !== -1 ? idx : text.length;
+  };
 
   useEffect(() => {
     const savedEmail = sessionStorage.getItem('gnEmail');
@@ -34,10 +48,16 @@ export default function ChatPage() {
     const saved = sessionStorage.getItem('selectedGlove');
     const selected = saved ? JSON.parse(saved) : null;
     setEmail(savedEmail);
+    emailRef.current = savedEmail;
     if (selected) {
       sessionStorage.removeItem('selectedGlove');
-      setPinnedGlove({ src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label });
-      setMessages([{ role: 'assistant', content: `Welcome back! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?` }]);
+      const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
+      pinnedGloveRef.current = glove;
+      setPinnedGloveDisplay(glove);
+      setMessages([{
+        role: 'assistant',
+        content: `Welcome back! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
+      }]);
       setStep('chat');
     } else {
       setStep('select');
@@ -58,33 +78,48 @@ export default function ChatPage() {
   const sendCode = async () => {
     if (email) {
       sessionStorage.setItem('gnEmail', email);
+      emailRef.current = email;
       const saved = sessionStorage.getItem('selectedGlove');
       const selected = saved ? JSON.parse(saved) : null;
       if (selected) {
         sessionStorage.removeItem('selectedGlove');
+        const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
+        pinnedGloveRef.current = glove;
+        setPinnedGloveDisplay(glove);
         setStep('chat');
-        setPinnedGlove({ src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label });
-        setMessages([{ role: 'assistant', content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?` }]);
+        setMessages([{
+          role: 'assistant',
+          content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
+        }]);
       } else {
         setStep('select');
       }
-      return;
     }
   };
 
   const verifyCode = async () => {
     setLoading(true);
-    const res = await fetch('/api/auth', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code }) });
+    const res = await fetch('/api/auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, code }),
+    });
     const data = await res.json();
     if (data.success) {
       sessionStorage.setItem('gnEmail', email);
+      emailRef.current = email;
       const saved = sessionStorage.getItem('selectedGlove');
       const selected = saved ? JSON.parse(saved) : null;
       if (selected) {
         sessionStorage.removeItem('selectedGlove');
+        const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
+        pinnedGloveRef.current = glove;
+        setPinnedGloveDisplay(glove);
         setStep('chat');
-        setPinnedGlove({ src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label });
-        setMessages([{ role: 'assistant', content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?` }]);
+        setMessages([{
+          role: 'assistant',
+          content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
+        }]);
       } else {
         setStep('select');
       }
@@ -128,9 +163,15 @@ export default function ChatPage() {
     const remaining = 4 - images.length;
     const toProcess = files.slice(0, remaining);
     const resized = await Promise.all(toProcess.map(resizeImage));
+
     setImages(prev => [...prev, ...resized]);
-    setUploadedImages(prev => [...prev, ...resized]);
-    if (!pinnedImage) setPinnedImage(resized[0]);
+
+    uploadedImagesRef.current = [...uploadedImagesRef.current, ...resized];
+    setUploadedImagesDisplay([...uploadedImagesRef.current]);
+
+    if (!pinnedImageRef.current) {
+      pinnedImageRef.current = resized[0];
+    }
   };
 
   const removeImage = (index: number) => {
@@ -139,6 +180,7 @@ export default function ChatPage() {
 
   const sendMessage = async () => {
     if (!input.trim() && images.length === 0) return;
+
     const userMessage: Message = {
       role: 'user',
       content: input || '[USER_IMAGE]',
@@ -149,37 +191,56 @@ export default function ChatPage() {
     setInput('');
     setLoading(true);
 
-    const firstImage = pinnedImage || uploadedImages[0];
-    const currentEmail = email || sessionStorage.getItem('gnEmail') || '';
+    const firstImage = uploadedImagesRef.current[0] || pinnedImageRef.current;
+    const currentEmail = emailRef.current || email || sessionStorage.getItem('gnEmail') || '';
 
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: newMessages.map(m => ({ role: m.role, content: m.content === '[USER_IMAGE]' ? 'Here are my reference photos.' : m.content })),
-        imageBase64: firstImage?.base64,
-        imageType: firstImage?.type,
-        email: currentEmail,
-      }),
-    });
-    const data = await res.json();
+    console.log('[DEBUG] sendMessage — email:', currentEmail);
 
-    if (data.orderComplete && data.orderData) {
-      const finalOrder = { ...data.orderData };
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newMessages.map(m => ({
+            role: m.role,
+            content: m.content === '[USER_IMAGE]' ? 'Here are my reference photos.' : m.content,
+          })),
+          imageBase64: firstImage?.base64 || null,
+          imageType: firstImage?.type || null,
+          email: currentEmail,
+        }),
+      });
 
-      // 프론트에서 직접 base64 주입 — Haiku 텍스트 설명 덮어쓰기
-      if (uploadedImages.length > 0) {
-        finalOrder.reference_photos = uploadedImages;
-        finalOrder.reference_photo = `data:${uploadedImages[0].type};base64,${uploadedImages[0].base64}`;
-      } else if (pinnedGlove && !finalOrder.reference_photo) {
-        finalOrder.reference_photo = pinnedGlove.src;
+      const data = await res.json();
+      console.log('[DEBUG] orderComplete:', data.orderComplete, 'hasOrderData:', !!data.orderData);
+
+      if (data.orderComplete && data.orderData) {
+        const finalOrder = { ...data.orderData };
+
+        // 레퍼런스 사진 강제 주입
+        if (uploadedImagesRef.current.length > 0) {
+          finalOrder.reference_photos = uploadedImagesRef.current;
+          finalOrder.reference_photo = `data:${uploadedImagesRef.current[0].type};base64,${uploadedImagesRef.current[0].base64}`;
+        } else if (pinnedGloveRef.current) {
+          finalOrder.reference_photo = pinnedGloveRef.current.src;
+        }
+
+        // 이메일 강제 주입
+        finalOrder.customer = {
+          ...finalOrder.customer,
+          email: currentEmail || finalOrder.customer?.email || '',
+        };
+
+        console.log('[DEBUG] finalOrder.customer.email:', finalOrder.customer.email);
+
+        setOrderData(finalOrder);
+        setStep('order');
+      } else {
+        setMessages([...newMessages, { role: 'assistant', content: data.message }]);
       }
-
-      if (!finalOrder.customer.email) finalOrder.customer.email = currentEmail;
-      setOrderData(finalOrder);
-      setStep('order');
-    } else {
-      setMessages([...newMessages, { role: 'assistant', content: data.message }]);
+    } catch (err) {
+      console.error('[DEBUG] fetch error:', err);
+      setMessages([...newMessages, { role: 'assistant', content: 'Something went wrong. Please try again.' }]);
     }
 
     setImages([]);
@@ -202,7 +263,10 @@ export default function ChatPage() {
       if (btn) btn.style.display = 'none';
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(orderSheetRef.current, {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false,
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
       });
       if (btn) btn.style.display = '';
       return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
@@ -225,73 +289,103 @@ export default function ChatPage() {
       const data = await res.json();
       if (data.success) {
         alert(`Order ${data.orderId} confirmed! Check your email for your order summary.`);
+        // 전체 초기화
         setStep('select');
         setMessages([]);
         setOrderData(null);
-        setUploadedImages([]);
-        setPinnedImage(null);
-        setPinnedGlove(null);
+        setImages([]);
+        uploadedImagesRef.current = [];
+        pinnedImageRef.current = null;
+        pinnedGloveRef.current = null;
+        setUploadedImagesDisplay([]);
+        setPinnedGloveDisplay(null);
         setCode('');
       } else {
         alert('Something went wrong. Please try again.');
       }
     } catch (error) {
+      console.error('[DEBUG] handleOrderConfirm error:', error);
       alert('Something went wrong. Please try again.');
     }
     setLoading(false);
   };
 
   const renderMessage = (content: string, imageData?: { base64: string; type: string }[] | null) => {
+    // 유저 이미지 메시지
     if (content === '[USER_IMAGE]' && imageData && imageData.length > 0) {
       return (
         <div style={{ display: 'grid', gridTemplateColumns: imageData.length > 1 ? '1fr 1fr' : '1fr', gap: '4px' }}>
           {imageData.map((img, i) => (
-            <img key={i} src={`data:${img.type};base64,${img.base64}`} alt={`reference ${i+1}`} className="w-full rounded-lg cursor-pointer" onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)} />
+            <img
+              key={i}
+              src={`data:${img.type};base64,${img.base64}`}
+              alt={`reference ${i + 1}`}
+              className="w-full rounded-lg cursor-pointer"
+              onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)}
+            />
           ))}
         </div>
       );
     }
-    const cleanContent = content.includes('ORDER_COMPLETE:')
-      ? content.substring(0, content.indexOf('ORDER_COMPLETE:')).trim()
-      : content;
+
+    // ORDER_COMPLETE 이후 텍스트(JSON 포함) 잘라내기
+    const cutIndex = findOrderCompleteIndex(content);
+    const cleanContent = content.substring(0, cutIndex).trim();
+
+    // [SHOW_IMAGE: ...] 파싱
     const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
     return parts.map((part, i) => {
       if (i % 2 === 1) {
-        return <img key={i} src={`/gloves/${part}`} alt="glove" className="w-64 rounded-lg my-2 cursor-pointer" onClick={() => setModalImage(`/gloves/${part}`)} />;
+        return (
+          <img
+            key={i}
+            src={`/gloves/${part}`}
+            alt="glove"
+            className="w-64 rounded-lg my-2 cursor-pointer"
+            onClick={() => setModalImage(`/gloves/${part}`)}
+          />
+        );
       }
       return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
     });
   };
 
   const renderPinnedImages = () => {
-    if (uploadedImages.length > 0) {
-      if (uploadedImages.length === 1) {
+    if (uploadedImagesDisplay.length > 0) {
+      if (uploadedImagesDisplay.length === 1) {
         return (
           <img
-            src={`data:${uploadedImages[0].type};base64,${uploadedImages[0].base64}`}
+            src={`data:${uploadedImagesDisplay[0].type};base64,${uploadedImagesDisplay[0].base64}`}
             alt="ref"
             style={{ height: '60px', width: 'auto', borderRadius: '6px', objectFit: 'cover', cursor: 'pointer' }}
-            onClick={() => setModalImage(`data:${uploadedImages[0].type};base64,${uploadedImages[0].base64}`)}
+            onClick={() => setModalImage(`data:${uploadedImagesDisplay[0].type};base64,${uploadedImagesDisplay[0].base64}`)}
           />
         );
       }
       return (
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2px' }}>
-          {uploadedImages.slice(0, 4).map((img, i) => (
-            <img key={i} src={`data:${img.type};base64,${img.base64}`} alt={`ref ${i+1}`}
+          {uploadedImagesDisplay.slice(0, 4).map((img, i) => (
+            <img
+              key={i}
+              src={`data:${img.type};base64,${img.base64}`}
+              alt={`ref ${i + 1}`}
               style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
-              onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)} />
+              onClick={() => setModalImage(`data:${img.type};base64,${img.base64}`)}
+            />
           ))}
         </div>
       );
     }
-    if (pinnedGlove) {
+    if (pinnedGloveDisplay) {
       return (
         <div className="flex items-center gap-2">
-          <img src={pinnedGlove.src} alt="pinned glove"
+          <img
+            src={pinnedGloveDisplay.src}
+            alt="pinned glove"
             style={{ height: '60px', width: 'auto', borderRadius: '6px', objectFit: 'cover', cursor: 'pointer' }}
-            onClick={() => setModalImage(pinnedGlove.src)} />
-          <span className="text-xs text-gray-300">{pinnedGlove.label}</span>
+            onClick={() => setModalImage(pinnedGloveDisplay.src)}
+          />
+          <span className="text-xs text-gray-300">{pinnedGloveDisplay.label}</span>
         </div>
       );
     }
@@ -303,15 +397,28 @@ export default function ChatPage() {
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
 
+      {/* 이미지 모달 */}
       {modalImage && (
-        <div onClick={() => setModalImage(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'pointer', padding: '20px' }}>
-          <img src={modalImage} alt="full size" style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }} onClick={e => e.stopPropagation()} />
-          <button onClick={() => setModalImage(null)} style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer' }}>✕</button>
+        <div
+          onClick={() => setModalImage(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, cursor: 'pointer', padding: '20px' }}
+        >
+          <img
+            src={modalImage}
+            alt="full size"
+            style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: '8px' }}
+            onClick={e => e.stopPropagation()}
+          />
+          <button
+            onClick={() => setModalImage(null)}
+            style={{ position: 'absolute', top: '20px', right: '20px', background: 'rgba(255,255,255,0.2)', color: 'white', border: 'none', borderRadius: '50%', width: '36px', height: '36px', fontSize: '18px', cursor: 'pointer' }}
+          >✕</button>
         </div>
       )}
 
       {(step === 'email' || step === 'verify' || step === 'select') && <Nav />}
 
+      {/* 이메일 입력 */}
       {step === 'email' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
           {killSwitch ? (
@@ -327,13 +434,25 @@ export default function ChatPage() {
             <>
               <div className="mb-6">
                 <div className="text-yellow-400 text-xs font-bold tracking-widest uppercase mb-2">Korean Craft · Custom Order</div>
-                <h1 className="text-3xl font-black text-white leading-tight mb-3">Your Glove.<br/>Your Way.<br/><span className="text-yellow-400">$169. 30 Days.</span></h1>
+                <h1 className="text-3xl font-black text-white leading-tight mb-3">
+                  Your Glove.<br />Your Way.<br /><span className="text-yellow-400">$169. 30 Days.</span>
+                </h1>
                 <p className="text-gray-400 text-sm">Everything custom. Nothing extra.</p>
               </div>
               <div className="border-t border-gray-700 pt-5">
                 <p className="text-gray-500 text-xs mb-3">Enter your email to start. Your order summary will be sent here.</p>
-                <input className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-white" placeholder="your@email.com" value={email} onChange={e => setEmail(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendCode()} />
-                <button onClick={sendCode} disabled={loading} className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300">
+                <input
+                  className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-white"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={e => { setEmail(e.target.value); emailRef.current = e.target.value; }}
+                  onKeyDown={e => e.key === 'Enter' && sendCode()}
+                />
+                <button
+                  onClick={sendCode}
+                  disabled={loading}
+                  className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300"
+                >
                   {loading ? 'Sending...' : 'Start Designing →'}
                 </button>
               </div>
@@ -342,43 +461,72 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* 코드 인증 */}
       {step === 'verify' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
           <h1 className="text-2xl font-bold text-yellow-400 mb-2">Check Your Email</h1>
           <p className="text-gray-400 mb-6">Enter the 6-digit code sent to {email}</p>
-          <input className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-center text-2xl tracking-widest" placeholder="000000" value={code} onChange={e => setCode(e.target.value)} maxLength={6} />
-          <button onClick={verifyCode} disabled={loading} className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300">
+          <input
+            className="w-full bg-gray-800 rounded-lg p-3 mb-4 outline-none text-center text-2xl tracking-widest"
+            placeholder="000000"
+            value={code}
+            onChange={e => setCode(e.target.value)}
+            maxLength={6}
+          />
+          <button
+            onClick={verifyCode}
+            disabled={loading}
+            className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300"
+          >
             {loading ? 'Verifying...' : 'Verify'}
           </button>
         </div>
       )}
 
+      {/* 시작 방법 선택 */}
       {step === 'select' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
           <h1 className="text-2xl font-bold text-yellow-400 mb-2">How would you like to start?</h1>
           <p className="text-gray-400 mb-8">Browse our collection or upload a reference photo</p>
           <div className="flex flex-col gap-4">
-            <button onClick={() => window.location.href = '/catalog'} className="w-full bg-yellow-400 text-black font-bold py-4 rounded-xl hover:bg-yellow-300 text-lg">
+            <button
+              onClick={() => window.location.href = '/catalog'}
+              className="w-full bg-yellow-400 text-black font-bold py-4 rounded-xl hover:bg-yellow-300 text-lg"
+            >
               🧤 Browse Our Catalog
             </button>
-            <button onClick={() => { setStep('chat'); setMessages([{ role: 'assistant', content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the glove style you have in mind, or describe what you're looking for!" }]); }} className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg">
+            <button
+              onClick={() => {
+                sessionStorage.setItem('gnEmail', email);
+                emailRef.current = email;
+                setStep('chat');
+                setMessages([{
+                  role: 'assistant',
+                  content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the glove style you have in mind, or describe what you're looking for!",
+                }]);
+              }}
+              className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg"
+            >
               📷 Upload My Photo
             </button>
           </div>
         </div>
       )}
 
+      {/* 채팅 */}
       {step === 'chat' && (
         <div className="w-full max-w-2xl flex flex-col h-screen">
           <div className="bg-gray-900 p-3 text-center">
             <h1 className="text-xl font-bold text-yellow-400">GN GLOVE Custom Consultant</h1>
           </div>
-          {(uploadedImages.length > 0 || pinnedGlove) && (
+
+          {(uploadedImagesDisplay.length > 0 || pinnedGloveDisplay) && (
             <div className="bg-gray-800 px-4 py-2 flex items-center gap-3 border-b border-gray-700">
               <div className="text-xs text-gray-400 whitespace-nowrap">Reference:</div>
               {renderPinnedImages()}
             </div>
           )}
+
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
@@ -390,26 +538,54 @@ export default function ChatPage() {
             {loading && <div className="text-gray-400 text-sm">Typing...</div>}
             <div ref={messagesEndRef} />
           </div>
+
           {images.length > 0 && (
             <div className="px-4 py-2 bg-gray-900 flex gap-2 flex-wrap">
               {images.map((img, i) => (
                 <div key={i} style={{ position: 'relative' }}>
-                  <img src={`data:${img.type};base64,${img.base64}`} alt={`preview ${i+1}`} style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px' }} />
-                  <button onClick={() => removeImage(i)} style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer' }}>✕</button>
+                  <img
+                    src={`data:${img.type};base64,${img.base64}`}
+                    alt={`preview ${i + 1}`}
+                    style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '6px' }}
+                  />
+                  <button
+                    onClick={() => removeImage(i)}
+                    style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#ff4444', color: 'white', border: 'none', borderRadius: '50%', width: '18px', height: '18px', fontSize: '10px', cursor: 'pointer' }}
+                  >✕</button>
                 </div>
               ))}
-              {images.length < 4 && <div style={{ fontSize: '11px', color: '#888', alignSelf: 'center' }}>{4 - images.length} more allowed</div>}
+              {images.length < 4 && (
+                <div style={{ fontSize: '11px', color: '#888', alignSelf: 'center' }}>{4 - images.length} more allowed</div>
+              )}
             </div>
           )}
+
           <div className="p-4 bg-gray-900 flex gap-2 items-end">
-            {images.length < 4 && <button onClick={() => fileRef.current?.click()} className="bg-gray-700 p3 rounded-lg hover:bg-gray-600 flex-shrink-0">📷</button>}
+            {images.length < 4 && (
+              <button onClick={() => fileRef.current?.click()} className="bg-gray-700 p-3 rounded-lg hover:bg-gray-600 flex-shrink-0">📷</button>
+            )}
             <input ref={fileRef} type="file" accept="image/*" multiple className="hidden" onChange={handleImage} />
-            <textarea ref={textareaRef} className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed" placeholder="Type a message... (Shift+Enter for new line)" value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown} rows={1} style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }} />
-            <button onClick={sendMessage} disabled={loading} className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0" style={{ height: '44px' }}>Send</button>
+            <textarea
+              ref={textareaRef}
+              className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed"
+              placeholder="Type a message... (Shift+Enter for new line)"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={1}
+              style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }}
+            />
+            <button
+              onClick={sendMessage}
+              disabled={loading}
+              className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0"
+              style={{ height: '44px' }}
+            >Send</button>
           </div>
         </div>
       )}
 
+      {/* 주문서 */}
       {step === 'order' && orderData && (
         <div className="w-full max-w-3xl py-8">
           <div ref={orderSheetRef}>

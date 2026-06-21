@@ -210,5 +210,132 @@
     "reference_photo": "/gloves/gelato/mint-pink_12.00_pitcher03.jpg",
     "orderId": "GN-QTC34E",
     "orderDate": "May 7, 2026"
+  },
+  {
+    "order_type": "catalog",
+    "sport": "baseball",
+    "player_type": "adult",
+    "hand": "LHT",
+    "size": "13.00",
+    "position": "outfield",
+    "web_type": "As Per Reference Photo",
+    "colors": {
+      "wrist": "",
+      "wrist_hex": "",
+      "welting": "",
+      "welting_hex": "",
+      "lace": "",
+      "lace_hex": "",
+      "bridge": "",
+      "bridge_hex": "",
+      "web": "",
+      "web_hex": "",
+      "palm_shell": "",
+      "palm_shell_hex": "",
+      "piping": "",
+      "piping_hex": ""
+    },
+    "color_changes": [
+      {
+        "part": "검지 왼쪽",
+        "color": "Red",
+        "hex": "#cc0000"
+      },
+      {
+        "part": "중지 오른쪽",
+        "color": "Red",
+        "hex": "#cc0000"
+      }
+    ],
+    "embroidery": {
+      "name": {
+        "text": "low park",
+        "color": "Red",
+        "color_hex": "#cc0000",
+        "location": ""
+      },
+      "flag": {
+        "country": "china",
+        "location": "1"
+      }
+    },
+    "logo": {
+      "background": "Red",
+      "background_hex": "#cc0000",
+      "logo_color": "Navy",
+      "logo_color_hex": "#001f5b"
+    },
+    "customer": {
+      "name": "박형천",
+      "email": "raonrobin@gmail.com",
+      "phone": "01071707760",
+      "address": "광주광역시 북구 무등오 68 4층"
+    },
+    "special_requests": "손이 좀 큽니다. 손 넣는 곳을 크게 만들어 주세요.",
+    "selected_glove": "lemonyellow-tan_13.00_outfield09",
+    "reference_photo": "/gloves/classic/lemonyellow-tan_13.00_outfield09.jpg",
+    "orderId": "GN-20IC3G",
+    "orderDate": "May 8, 2026"
+  },
+  {
+    "order_type": "catalog",
+    "sport": "Baseball",
+    "player_type": "Adult",
+    "hand": "RHT",
+    "size": "34.00",
+    "position": "Catcher",
+    "web_type": "As Per Reference Photo",
+    "colors": {
+      "wrist": "",
+      "wrist_hex": "",
+      "welting": "",
+      "welting_hex": "",
+      "lace": "",
+      "lace_hex": "",
+      "bridge": "",
+      "bridge_hex": "",
+      "web": "",
+      "web_hex": "",
+      "palm_shell": "White",
+      "palm_shell_hex": "#ffffff",
+      "piping": "",
+      "piping_hex": ""
+    },
+    "color_changes": [
+      {
+        "part": "Palm Shell",
+        "color": "White",
+        "hex": "#ffffff"
+      }
+    ],
+    "embroidery": {
+      "name": {
+        "text": "Low Park",
+        "color": "Red",
+        "color_hex": "#cc0000",
+        "location": "1"
+      },
+      "flag": {
+        "country": "china",
+        "location": "5"
+      }
+    },
+    "logo": {
+      "background": "Black",
+      "background_hex": "#1a1a1a",
+      "logo_color": "White",
+      "logo_color_hex": "#ffffff"
+    },
+    "customer": {
+      "name": "박형천",
+      "email": "photographer@parkraon.com",
+      "phone": "01071707760",
+      "address": "광주광역시 북구 무등로 68 4층"
+    },
+    "special_requests": "입수부를 크게 만들어 주세요.",
+    "selected_glove": "pink-white_34.00_catcher10",
+    "reference_photo": "/gloves/classic/pink-white_34.00_catcher10.jpg",
+    "orderId": "GN-DCV7LO",
+    "orderDate": "May 8, 2026"
   }
 ]
