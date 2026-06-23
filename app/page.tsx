@@ -20,6 +20,7 @@ export default function ChatPage() {
   const [images, setImages] = useState<{ base64: string; type: string }[]>([]);
   const [orderData, setOrderData] = useState<any>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
+  const [resultModal, setResultModal] = useState<{ type: 'success' | 'error'; title: string; body: string; okLabel: string } | null>(null);
 
   // useRef — 렌더링과 무관하게 항상 최신값 유지
   const uploadedImagesRef = useRef<{ base64: string; type: string }[]>([]);
@@ -40,6 +41,70 @@ export default function ChatPage() {
   const findOrderCompleteIndex = (text: string): number => {
     const idx = text.search(/ORDER_COMPLETE/);
     return idx !== -1 ? idx : text.length;
+  };
+
+  // 대화 내용의 문자 패턴으로 고객 언어를 추정 (한/일/중 + 일부 라틴어권 특수문자 기반)
+  type Lang = 'ko' | 'ja' | 'zh' | 'es' | 'fr' | 'de' | 'en';
+  const detectLanguage = (text: string): Lang => {
+    if (/[가-힣]/.test(text)) return 'ko';
+    if (/[぀-ヿ]/.test(text)) return 'ja';
+    if (/[一-鿿]/.test(text)) return 'zh';
+    if (/[ñ¿¡]/i.test(text)) return 'es';
+    if (/[àâçéèêîôûùëïÿœ]/i.test(text)) return 'fr';
+    if (/[äöüß]/i.test(text)) return 'de';
+    return 'en';
+  };
+
+  const ORDER_RESULT_TEXT: Record<Lang, { successTitle: string; successBody: (orderId: string) => string; errorTitle: string; errorBody: string; okLabel: string }> = {
+    en: {
+      successTitle: 'Order Confirmed!',
+      successBody: (id) => `Your order ${id} has been received. Please check your email for your order summary.\n\nIf anything in your order is unclear to our craftsmen, we may send you a follow-up email to confirm details — please reply as soon as you can so production isn't delayed.`,
+      errorTitle: 'Something went wrong',
+      errorBody: 'Please try again.',
+      okLabel: 'OK',
+    },
+    ko: {
+      successTitle: '주문이 확정되었습니다!',
+      successBody: (id) => `주문번호 ${id}가 접수되었습니다. 이메일로 주문 내용을 확인해주세요.\n\n혹시 장인이 주문 내용 중 이해하기 어려운 부분이 있으면 확인 메일을 보내드릴 수 있습니다. 제작이 지연되지 않도록 빠르게 답변해주시면 감사하겠습니다.`,
+      errorTitle: '문제가 발생했습니다',
+      errorBody: '다시 시도해주세요.',
+      okLabel: '확인',
+    },
+    ja: {
+      successTitle: 'ご注文が確定しました！',
+      successBody: (id) => `ご注文番号 ${id} を受け付けました。注文内容はメールでご確認ください。\n\n職人が注文内容で分かりにくい点があった場合、確認のメールをお送りすることがあります。製作が遅れないよう、できるだけ早くご返信ください。`,
+      errorTitle: 'エラーが発生しました',
+      errorBody: 'もう一度お試しください。',
+      okLabel: '確認',
+    },
+    zh: {
+      successTitle: '订单已确认！',
+      successBody: (id) => `您的订单 ${id} 已收到。请查看邮件以确认订单详情。\n\n如果工匠对订单内容有不清楚的地方，我们可能会给您发邮件确认，请尽快回复以避免延误制作。`,
+      errorTitle: '出现错误',
+      errorBody: '请重试。',
+      okLabel: '确定',
+    },
+    es: {
+      successTitle: '¡Pedido confirmado!',
+      successBody: (id) => `Su pedido ${id} ha sido recibido. Por favor revise su correo electrónico para ver el resumen del pedido.\n\nSi algo no está claro para nuestros artesanos, podríamos enviarle un correo de seguimiento para confirmar detalles — por favor responda lo antes posible para no retrasar la producción.`,
+      errorTitle: 'Algo salió mal',
+      errorBody: 'Por favor, inténtalo de nuevo.',
+      okLabel: 'Aceptar',
+    },
+    fr: {
+      successTitle: 'Commande confirmée !',
+      successBody: (id) => `Votre commande ${id} a été reçue. Veuillez consulter votre e-mail pour le récapitulatif de la commande.\n\nSi nos artisans ont besoin de clarifier un détail, nous pourrions vous envoyer un e-mail de suivi — merci de répondre rapidement pour ne pas retarder la production.`,
+      errorTitle: 'Une erreur est survenue',
+      errorBody: 'Veuillez réessayer.',
+      okLabel: "D'accord",
+    },
+    de: {
+      successTitle: 'Bestellung bestätigt!',
+      successBody: (id) => `Ihre Bestellung ${id} wurde erhalten. Bitte prüfen Sie Ihre E-Mail für die Bestellzusammenfassung.\n\nFalls unseren Handwerkern etwas unklar ist, senden wir Ihnen möglicherweise eine Folge-E-Mail zur Bestätigung — bitte antworten Sie zeitnah, damit die Produktion nicht verzögert wird.`,
+      errorTitle: 'Etwas ist schiefgelaufen',
+      errorBody: 'Bitte versuchen Sie es erneut.',
+      okLabel: 'OK',
+    },
   };
 
   useEffect(() => {
@@ -129,31 +194,43 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  const resizeImage = (file: File): Promise<{ base64: string; type: string }> => {
+  // 정사각형 캔버스에 흰 여백을 두고 비율 유지하며 그려넣는 공통 로직
+  const drawToSquareCanvas = (img: HTMLImageElement, size: number): string => {
+    const canvas = document.createElement('canvas');
+    canvas.width = size;
+    canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, size, size);
+    const scale = Math.min(size / img.width, size / img.height);
+    const w = img.width * scale;
+    const h = img.height * scale;
+    const x = (size - w) / 2;
+    const y = (size - h) / 2;
+    ctx.drawImage(img, x, y, w, h);
+    return canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+  };
+
+  const resizeImage = (file: File, size: number): Promise<{ base64: string; type: string }> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = () => {
         const img = new window.Image();
         img.onload = () => {
-          const SIZE = 500;
-          const canvas = document.createElement('canvas');
-          canvas.width = SIZE;
-          canvas.height = SIZE;
-          const ctx = canvas.getContext('2d')!;
-          ctx.fillStyle = '#ffffff';
-          ctx.fillRect(0, 0, SIZE, SIZE);
-          const scale = Math.min(SIZE / img.width, SIZE / img.height);
-          const w = img.width * scale;
-          const h = img.height * scale;
-          const x = (SIZE - w) / 2;
-          const y = (SIZE - h) / 2;
-          ctx.drawImage(img, x, y, w, h);
-          const base64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
-          resolve({ base64, type: 'image/jpeg' });
+          resolve({ base64: drawToSquareCanvas(img, size), type: 'image/jpeg' });
         };
         img.src = reader.result as string;
       };
       reader.readAsDataURL(file);
+    });
+  };
+
+  // 이미 리사이즈된 base64 이미지를 다른 크기로 다시 리사이즈 (업로드 장수가 늘어났을 때 기존 1장을 축소하기 위함)
+  const resizeBase64Image = (base64: string, size: number): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new window.Image();
+      img.onload = () => resolve(drawToSquareCanvas(img, size));
+      img.src = `data:image/jpeg;base64,${base64}`;
     });
   };
 
@@ -162,12 +239,26 @@ export default function ChatPage() {
     if (!files.length) return;
     const remaining = 4 - images.length;
     const toProcess = files.slice(0, remaining);
-    const resized = await Promise.all(toProcess.map(resizeImage));
+
+    // 사진 업로드 수량에 따라 해상도 결정: 총 1장이면 1000x1000, 2장 이상이면 500x500
+    const newTotal = uploadedImagesRef.current.length + toProcess.length;
+    const targetSize = newTotal === 1 ? 1000 : 500;
+
+    const resized = await Promise.all(toProcess.map(f => resizeImage(f, targetSize)));
+
+    let existing = uploadedImagesRef.current;
+    if (targetSize === 500 && existing.length === 1) {
+      // 기존에 1장만 있어서 1000x1000으로 저장돼 있었다면, 2장 이상이 된 지금 500x500으로 다시 리사이즈
+      const downsized = await resizeBase64Image(existing[0].base64, 500);
+      existing = [{ ...existing[0], base64: downsized }];
+    }
+
+    const merged = [...existing, ...resized];
 
     setImages(prev => [...prev, ...resized]);
 
-    uploadedImagesRef.current = [...uploadedImagesRef.current, ...resized];
-    setUploadedImagesDisplay([...uploadedImagesRef.current]);
+    uploadedImagesRef.current = merged;
+    setUploadedImagesDisplay([...merged]);
 
     if (!pinnedImageRef.current) {
       pinnedImageRef.current = resized[0];
@@ -278,6 +369,8 @@ export default function ChatPage() {
 
   const handleOrderConfirm = async () => {
     setLoading(true);
+    const lang = detectLanguage(messages.filter(m => m.role === 'user').map(m => m.content).join(' '));
+    const t = ORDER_RESULT_TEXT[lang];
     try {
       const orderImageBase64 = await captureOrderSheet();
       const chatMessages = messages.map(m => ({ role: m.role, content: m.content }));
@@ -288,7 +381,7 @@ export default function ChatPage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert(`Order ${data.orderId} confirmed! Check your email for your order summary.`);
+        setResultModal({ type: 'success', title: t.successTitle, body: t.successBody(data.orderId), okLabel: t.okLabel });
         // 전체 초기화
         setStep('select');
         setMessages([]);
@@ -301,11 +394,11 @@ export default function ChatPage() {
         setPinnedGloveDisplay(null);
         setCode('');
       } else {
-        alert('Something went wrong. Please try again.');
+        setResultModal({ type: 'error', title: t.errorTitle, body: t.errorBody, okLabel: t.okLabel });
       }
     } catch (error) {
       console.error('[DEBUG] handleOrderConfirm error:', error);
-      alert('Something went wrong. Please try again.');
+      setResultModal({ type: 'error', title: t.errorTitle, body: t.errorBody, okLabel: t.okLabel });
     }
     setLoading(false);
   };
@@ -396,6 +489,51 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
+
+      {/* 주문 결과 모달 */}
+      {resultModal && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}
+        >
+          <div
+            style={{
+              background: '#111827',
+              border: `1px solid ${resultModal.type === 'success' ? '#facc15' : '#dc2626'}`,
+              borderRadius: '14px',
+              padding: '28px 24px',
+              maxWidth: '420px',
+              width: '100%',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: '40px', marginBottom: '10px' }}>
+              {resultModal.type === 'success' ? '✅' : '⚠️'}
+            </div>
+            <div style={{ fontSize: '18px', fontWeight: 800, color: resultModal.type === 'success' ? '#facc15' : '#f87171', marginBottom: '12px' }}>
+              {resultModal.title}
+            </div>
+            <div style={{ fontSize: '13px', color: '#d1d5db', lineHeight: 1.7, whiteSpace: 'pre-line', textAlign: 'left' }}>
+              {resultModal.body}
+            </div>
+            <button
+              onClick={() => setResultModal(null)}
+              style={{
+                marginTop: '20px',
+                width: '100%',
+                background: '#facc15',
+                color: '#111',
+                fontWeight: 700,
+                border: 'none',
+                borderRadius: '8px',
+                padding: '12px',
+                cursor: 'pointer',
+              }}
+            >
+              {resultModal.okLabel}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 이미지 모달 */}
       {modalImage && (
@@ -502,7 +640,7 @@ export default function ChatPage() {
                 setStep('chat');
                 setMessages([{
                   role: 'assistant',
-                  content: "Welcome to GN Glove! 🧤 Please upload up to 4 reference photos of the glove style you have in mind, or describe what you're looking for!",
+                  content: "🇺🇸 Welcome to GN Glove! I can chat in English, Korean, Japanese, Chinese, Spanish, French, German, and more.\n🇰🇷 GN Glove에 오신 걸 환영합니다! 한국어로도 대화 가능합니다.\n🇯🇵 GN Gloveへようこそ！日本語でも対応可能です。\n🇨🇳 欢迎来到GN Glove！也支持中文对话。\n🇪🇸 ¡Bienvenido a GN Glove! También hablamos español.\n🇫🇷 Bienvenue chez GN Glove ! Nous parlons aussi français.\n🇩🇪 Willkommen bei GN Glove! Wir sprechen auch Deutsch.\n\n👉 Just reply in your language and I'll continue in it!\n\nPlease upload 1 to 4 reference photos of the glove style you'd like — we'll make it exactly as shown, with any changes you tell us. If you have a specific embroidery design in mind, you're welcome to upload that too — just keep in mind gloves have a small embroidery area, so very large or detailed artwork (like a painting) can't be reproduced; simple designs that fit a small embroidery space work best.",
                 }]);
               }}
               className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg"
