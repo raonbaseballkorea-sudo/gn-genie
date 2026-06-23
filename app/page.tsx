@@ -588,8 +588,10 @@ export default function ChatPage() {
       {/* 주문서 */}
       {step === 'order' && orderData && (
         <div className="w-full max-w-3xl py-8">
-          <div ref={orderSheetRef}>
-            <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} />
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <div ref={orderSheetRef}>
+              <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} />
+            </div>
           </div>
         </div>
       )}

@@ -152,7 +152,9 @@ function ReferencePhotos({
 
   const containerBase: React.CSSProperties = {
     width: '100%',
+    minHeight: '300px',
     display: 'grid',
+    gridAutoRows: '1fr',
     gap: '3px',
     padding: '3px',
     background: '#f8f8f8',
@@ -269,13 +271,14 @@ export default function OrderSheet({
 
   return (
     <div
-      className="print:p-2"
+      className="gn-order-sheet print:p-2"
       style={{
         background: 'white',
         color: '#111',
         fontFamily: 'Arial, sans-serif',
         fontSize: '12px',
         maxWidth: '760px',
+        minWidth: '760px',
         margin: '0 auto',
         padding: '20px',
       }}
@@ -291,14 +294,14 @@ export default function OrderSheet({
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <GNLogo bgColor={bgColor} logoColor={logoColor} width={100} height={61} />
           <div>
-            <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '4px' }}>GN GLOVE</div>
-            <div style={{ fontSize: '9px', color: '#888', letterSpacing: '2px' }}>KOREAN CRAFT · CUSTOM ORDER</div>
+            <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '4px', whiteSpace: 'nowrap' }}>GN GLOVE</div>
+            <div style={{ fontSize: '9px', color: '#888', letterSpacing: '2px', whiteSpace: 'nowrap' }}>KOREAN CRAFT · CUSTOM ORDER</div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px' }}>ORDER SHEET</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '3px', color: '#b8922a' }}>{orderId}</div>
-          <div style={{ fontSize: '9px', color: '#aaa', marginTop: '2px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px', whiteSpace: 'nowrap' }}>ORDER SHEET</div>
+          <div style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '3px', color: '#b8922a', whiteSpace: 'nowrap' }}>{orderId}</div>
+          <div style={{ fontSize: '9px', color: '#aaa', marginTop: '2px', whiteSpace: 'nowrap' }}>
             {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
           </div>
         </div>
