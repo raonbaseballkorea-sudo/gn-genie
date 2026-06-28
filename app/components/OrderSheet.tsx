@@ -9,23 +9,23 @@ interface OrderData {
   position: string;
   web_type: string;
   colors: {
-    wrist?: string; wrist_hex?: string;
-    welting?: string; welting_hex?: string;
-    lace?: string; lace_hex?: string;
-    bridge?: string; bridge_hex?: string;
-    web?: string; web_hex?: string;
-    palm_shell?: string; palm_shell_hex?: string;
-    piping?: string; piping_hex?: string;
+    wrist?: string; wrist_hex?: string; wrist_zh?: string;
+    welting?: string; welting_hex?: string; welting_zh?: string;
+    lace?: string; lace_hex?: string; lace_zh?: string;
+    bridge?: string; bridge_hex?: string; bridge_zh?: string;
+    web?: string; web_hex?: string; web_zh?: string;
+    palm_shell?: string; palm_shell_hex?: string; palm_shell_zh?: string;
+    piping?: string; piping_hex?: string; piping_zh?: string;
     shell?: string; palm?: string;
   };
-  color_changes?: { part: string; color: string; hex?: string; swatch?: string }[];
+  color_changes?: { part: string; color: string; hex?: string; swatch?: string; part_zh?: string; color_zh?: string }[];
   embroidery: {
-    name: { text: string; color: string; color_hex?: string; location: string };
+    name: { text: string; color: string; color_hex?: string; color_zh?: string; location: string };
     flag: { country: string; location: string };
   };
   logo: {
-    background: string; background_hex?: string;
-    logo_color: string; logo_color_hex?: string;
+    background: string; background_hex?: string; background_zh?: string;
+    logo_color: string; logo_color_hex?: string; logo_color_zh?: string;
   };
   customer: {
     name: string;
@@ -34,6 +34,9 @@ interface OrderData {
     address: string;
   };
   special_requests: string;
+  special_requests_zh?: string;
+  web_type_zh?: string;
+  customer_language?: string;
   reference_photo: string;
   reference_photos?: { base64: string; type: string }[];
   order_id?: string;
@@ -66,6 +69,153 @@ const POSITION_LABELS: { [key: string]: string } = {
   '1': 'Thumb', '2': 'Index', '3': 'Middle', '4': 'Ring',
   '5': 'Pinky', '7': 'Web', '9': 'Inner',
 };
+
+const POSITION_LABELS_ZH: { [key: string]: string } = {
+  '1': '拇指', '2': '食指', '3': '中指', '4': '无名指',
+  '5': '小指', '7': '网兜', '9': '内侧',
+};
+
+const STANDARD_PART_LABELS_ZH: { [key: string]: string } = {
+  'Wrist': '腕带', 'Welting': '边条', 'Lace': '皮绳', 'Bridge': '网兜桥',
+  'Web': '网兜', 'Palm Shell': '掌心皮', 'Piping': '滚边',
+};
+
+type UILabels = {
+  orderSheet: string; colorChanges: string; additionalRequests: string; allAsPerPhoto: string;
+  logoPatch: string; bg: string; logo: string; gloveRefPhotos: string; noPhoto: string;
+  fingerMap: string; gloveSpecs: string; sportLabel: string; handLabel: string; sizeLabel: string;
+  positionLabel: string; webLabel: string; embroidery: string; nameLabel: string; flagLabel: string;
+  noNameEmb: string; noFlagEmb: string; shipTo: string; messageToCraftsman: string; noMessage: string;
+  confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string;
+};
+
+const LABELS: { [lang: string]: UILabels } = {
+  en: {
+    orderSheet: 'ORDER SHEET', colorChanges: 'Color Changes', additionalRequests: 'Additional Requests',
+    allAsPerPhoto: 'All As Per Reference Photo', logoPatch: 'Logo Patch', bg: 'BG', logo: 'Logo',
+    gloveRefPhotos: 'Glove Reference Photos', noPhoto: 'No photo provided',
+    fingerMap: 'Finger Add-ons & Embroidery Position Map', gloveSpecs: 'Glove Specs',
+    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Size', positionLabel: 'Position', webLabel: 'Web',
+    embroidery: 'Embroidery', nameLabel: 'Name', flagLabel: 'Flag',
+    noNameEmb: 'No name embroidery', noFlagEmb: 'No flag embroidery', shipTo: 'Ship To',
+    messageToCraftsman: '✍️ Message to the Craftsman', noMessage: 'No message',
+    confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', pad: 'PAD', hood: 'HOOD', inner: 'Inner',
+  },
+  zh: {
+    orderSheet: '工作指示单', colorChanges: '颜色变更', additionalRequests: '其他要求',
+    allAsPerPhoto: '完全按照参考照片', logoPatch: '徽标贴片', bg: '底色', logo: '徽标',
+    gloveRefPhotos: '手套参考照片', noPhoto: '未提供照片',
+    fingerMap: '手指附加件 & 刺绣位置图', gloveSpecs: '手套规格',
+    sportLabel: '运动', handLabel: '惯用手', sizeLabel: '尺寸', positionLabel: '位置', webLabel: '网兜',
+    embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜',
+    noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
+    messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
+    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '加垫', hood: '护罩', inner: '内侧',
+  },
+  ko: {
+    orderSheet: '주문서', colorChanges: '컬러 변경', additionalRequests: '추가 요청사항',
+    allAsPerPhoto: '참고 사진과 동일하게', logoPatch: '로고 패치', bg: '배경색', logo: '로고',
+    gloveRefPhotos: '글러브 참고 사진', noPhoto: '제공된 사진 없음',
+    fingerMap: '손가락 옵션 & 자수 위치도', gloveSpecs: '글러브 사양',
+    sportLabel: '종목', handLabel: '사용손', sizeLabel: '사이즈', positionLabel: '포지션', webLabel: '웹',
+    embroidery: '자수', nameLabel: '이름', flagLabel: '국기',
+    noNameEmb: '이름 자수 없음', noFlagEmb: '국기 자수 없음', shipTo: '배송지',
+    messageToCraftsman: '✍️ 장인에게 남기는 메시지', noMessage: '메시지 없음',
+    confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', pad: '패드', hood: '후드', inner: '내측',
+  },
+  ja: {
+    orderSheet: '注文書', colorChanges: 'カラー変更', additionalRequests: 'その他のリクエスト',
+    allAsPerPhoto: '参考写真の通り', logoPatch: 'ロゴパッチ', bg: '背景色', logo: 'ロゴ',
+    gloveRefPhotos: 'グラブ参考写真', noPhoto: '写真未提供',
+    fingerMap: '指オプション & 刺繍位置図', gloveSpecs: 'グラブ仕様',
+    sportLabel: '種目', handLabel: '利き手', sizeLabel: 'サイズ', positionLabel: 'ポジション', webLabel: 'ウェブ',
+    embroidery: '刺繍', nameLabel: '名前', flagLabel: '国旗',
+    noNameEmb: '名前刺繍なし', noFlagEmb: '国旗刺繍なし', shipTo: '配送先',
+    messageToCraftsman: '✍️ 職人へのメッセージ', noMessage: 'メッセージなし',
+    confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', pad: 'パッド', hood: 'フード', inner: '内側',
+  },
+  es: {
+    orderSheet: 'HOJA DE PEDIDO', colorChanges: 'Cambios de Color', additionalRequests: 'Solicitudes Adicionales',
+    allAsPerPhoto: 'Igual a la foto de referencia', logoPatch: 'Parche de Logo', bg: 'Fondo', logo: 'Logo',
+    gloveRefPhotos: 'Fotos de Referencia', noPhoto: 'Sin foto',
+    fingerMap: 'Complementos y Mapa de Bordado', gloveSpecs: 'Especificaciones',
+    sportLabel: 'Deporte', handLabel: 'Mano', sizeLabel: 'Talla', positionLabel: 'Posición', webLabel: 'Red',
+    embroidery: 'Bordado', nameLabel: 'Nombre', flagLabel: 'Bandera',
+    noNameEmb: 'Sin bordado de nombre', noFlagEmb: 'Sin bordado de bandera', shipTo: 'Enviar a',
+    messageToCraftsman: '✍️ Mensaje para el Artesano', noMessage: 'Sin mensaje',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior',
+  },
+  fr: {
+    orderSheet: 'BON DE COMMANDE', colorChanges: 'Changements de Couleur', additionalRequests: 'Demandes Additionnelles',
+    allAsPerPhoto: 'Comme la photo de référence', logoPatch: 'Écusson Logo', bg: 'Fond', logo: 'Logo',
+    gloveRefPhotos: 'Photos de Référence', noPhoto: 'Aucune photo',
+    fingerMap: 'Options Doigts & Plan de Broderie', gloveSpecs: 'Caractéristiques',
+    sportLabel: 'Sport', handLabel: 'Main', sizeLabel: 'Taille', positionLabel: 'Poste', webLabel: 'Toile',
+    embroidery: 'Broderie', nameLabel: 'Nom', flagLabel: 'Drapeau',
+    noNameEmb: 'Pas de broderie de nom', noFlagEmb: 'Pas de broderie de drapeau', shipTo: 'Livraison',
+    messageToCraftsman: "✍️ Message à l'Artisan", noMessage: 'Aucun message',
+    confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur',
+  },
+  de: {
+    orderSheet: 'BESTELLBLATT', colorChanges: 'Farbänderungen', additionalRequests: 'Zusätzliche Wünsche',
+    allAsPerPhoto: 'Wie auf dem Referenzfoto', logoPatch: 'Logo-Patch', bg: 'Hintergrund', logo: 'Logo',
+    gloveRefPhotos: 'Referenzfotos', noPhoto: 'Kein Foto',
+    fingerMap: 'Finger-Optionen & Stickposition', gloveSpecs: 'Spezifikationen',
+    sportLabel: 'Sportart', handLabel: 'Hand', sizeLabel: 'Größe', positionLabel: 'Position', webLabel: 'Netz',
+    embroidery: 'Stickerei', nameLabel: 'Name', flagLabel: 'Flagge',
+    noNameEmb: 'Keine Namensstickerei', noFlagEmb: 'Keine Flaggenstickerei', shipTo: 'Lieferadresse',
+    messageToCraftsman: '✍️ Nachricht an den Handwerker', noMessage: 'Keine Nachricht',
+    confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen',
+  },
+  it: {
+    orderSheet: 'FOGLIO ORDINE', colorChanges: 'Cambi Colore', additionalRequests: 'Richieste Aggiuntive',
+    allAsPerPhoto: 'Come nella foto di riferimento', logoPatch: 'Patch Logo', bg: 'Sfondo', logo: 'Logo',
+    gloveRefPhotos: 'Foto di Riferimento', noPhoto: 'Nessuna foto',
+    fingerMap: 'Opzioni Dita & Mappa Ricamo', gloveSpecs: 'Specifiche',
+    sportLabel: 'Sport', handLabel: 'Mano', sizeLabel: 'Misura', positionLabel: 'Posizione', webLabel: 'Web',
+    embroidery: 'Ricamo', nameLabel: 'Nome', flagLabel: 'Bandiera',
+    noNameEmb: 'Nessun ricamo del nome', noFlagEmb: 'Nessun ricamo della bandiera', shipTo: 'Spedizione',
+    messageToCraftsman: "✍️ Messaggio all'Artigiano", noMessage: 'Nessun messaggio',
+    confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno',
+  },
+  nl: {
+    orderSheet: 'BESTELFORMULIER', colorChanges: 'Kleurwijzigingen', additionalRequests: 'Extra Verzoeken',
+    allAsPerPhoto: 'Volgens referentiefoto', logoPatch: 'Logo Patch', bg: 'Achtergrond', logo: 'Logo',
+    gloveRefPhotos: "Referentiefoto's", noPhoto: 'Geen foto',
+    fingerMap: 'Vingeropties & Borduurpositie', gloveSpecs: 'Specificaties',
+    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Maat', positionLabel: 'Positie', webLabel: 'Web',
+    embroidery: 'Borduurwerk', nameLabel: 'Naam', flagLabel: 'Vlag',
+    noNameEmb: 'Geen naamborduring', noFlagEmb: 'Geen vlagborduring', shipTo: 'Verzendadres',
+    messageToCraftsman: '✍️ Bericht aan de Vakman', noMessage: 'Geen bericht',
+    confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen',
+  },
+  th: {
+    orderSheet: 'ใบสั่งซื้อ', colorChanges: 'การเปลี่ยนสี', additionalRequests: 'คำขอเพิ่มเติม',
+    allAsPerPhoto: 'ตามภาพอ้างอิงทั้งหมด', logoPatch: 'แผ่นโลโก้', bg: 'พื้นหลัง', logo: 'โลโก้',
+    gloveRefPhotos: 'ภาพอ้างอิงถุงมือ', noPhoto: 'ไม่มีภาพ',
+    fingerMap: 'ตัวเลือกนิ้ว & แผนผังตำแหน่งปัก', gloveSpecs: 'สเปคถุงมือ',
+    sportLabel: 'กีฬา', handLabel: 'มือที่ใช้', sizeLabel: 'ขนาด', positionLabel: 'ตำแหน่ง', webLabel: 'เว็บ',
+    embroidery: 'ปักชื่อ', nameLabel: 'ชื่อ', flagLabel: 'ธง',
+    noNameEmb: 'ไม่มีการปักชื่อ', noFlagEmb: 'ไม่มีการปักธง', shipTo: 'จัดส่งไปที่',
+    messageToCraftsman: '✍️ ข้อความถึงช่างฝีมือ', noMessage: 'ไม่มีข้อความ',
+    confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน',
+  },
+  tl: {
+    orderSheet: 'ORDER SHEET', colorChanges: 'Pagbabago ng Kulay', additionalRequests: 'Karagdagang Kahilingan',
+    allAsPerPhoto: 'Ayon sa larawang sanggunian', logoPatch: 'Logo Patch', bg: 'Background', logo: 'Logo',
+    gloveRefPhotos: 'Mga Larawang Sanggunian', noPhoto: 'Walang larawan',
+    fingerMap: 'Mga Opsyon sa Daliri & Mapa ng Burda', gloveSpecs: 'Mga Detalye',
+    sportLabel: 'Isports', handLabel: 'Kamay', sizeLabel: 'Sukat', positionLabel: 'Posisyon', webLabel: 'Web',
+    embroidery: 'Burda', nameLabel: 'Pangalan', flagLabel: 'Bandila',
+    noNameEmb: 'Walang burda ng pangalan', noFlagEmb: 'Walang burda ng bandila', shipTo: 'Ipadala sa',
+    messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
+    confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob',
+  },
+};
+
+function getLabels(lang?: string): UILabels {
+  return LABELS[(lang || 'en').toLowerCase()] || LABELS.en;
+}
 
 // 국기 파일명 정규화: 소문자 + 공백 제거
 function getFlagFile(country: string): string {
@@ -106,10 +256,12 @@ function ReferencePhotos({
   photos,
   fallback,
   selectedGlove,
+  noPhotoLabel = 'No photo provided',
 }: {
   photos?: { base64: string; type: string }[];
   fallback?: string;
   selectedGlove?: string;
+  noPhotoLabel?: string;
 }) {
   const imgs: React.ReactNode[] = [];
 
@@ -168,7 +320,7 @@ function ReferencePhotos({
       <div style={{ ...containerBase, minHeight: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div style={{ textAlign: 'center', color: '#ccc', fontSize: '12px' }}>
           <div style={{ fontSize: '32px', marginBottom: '6px' }}>🧤</div>
-          No photo provided
+          {noPhotoLabel}
         </div>
       </div>
     );
@@ -196,11 +348,18 @@ function ReferencePhotos({
 export default function OrderSheet({
   orderData,
   onConfirm,
+  variant = 'customer',
 }: {
   orderData: OrderData;
   onConfirm: () => void;
+  variant?: 'customer' | 'factory';
 }) {
   const [confirmed, setConfirmed] = React.useState(false);
+  const isFactory = variant === 'factory';
+  const t = getLabels(isFactory ? 'zh' : orderData.customer_language);
+  const posLabels = isFactory ? POSITION_LABELS_ZH : POSITION_LABELS;
+  const pick = (val?: string, valZh?: string) => (isFactory && valZh ? valZh : (val || ''));
+  const partLabel = (en: string) => (isFactory ? (STANDARD_PART_LABELS_ZH[en] || en) : en);
 
   const handleConfirm = () => {
     if (confirmed) return;
@@ -238,24 +397,24 @@ export default function OrderSheet({
 
   // ── colors 객체에서 유효한 항목만 추출 ──────────────────────────
   const colorParts = [
-    { part: 'Wrist',      value: orderData.colors?.wrist || orderData.colors?.shell, hex: orderData.colors?.wrist_hex },
-    { part: 'Welting',    value: orderData.colors?.welting,    hex: orderData.colors?.welting_hex },
-    { part: 'Lace',       value: orderData.colors?.lace,       hex: orderData.colors?.lace_hex },
-    { part: 'Bridge',     value: orderData.colors?.bridge,     hex: orderData.colors?.bridge_hex },
-    { part: 'Web',        value: orderData.colors?.web,        hex: orderData.colors?.web_hex },
-    { part: 'Palm Shell', value: orderData.colors?.palm_shell, hex: orderData.colors?.palm_shell_hex },
-    { part: 'Piping',     value: orderData.colors?.piping,     hex: orderData.colors?.piping_hex },
+    { part: 'Wrist',      value: pick(orderData.colors?.wrist || orderData.colors?.shell, orderData.colors?.wrist_zh), hex: orderData.colors?.wrist_hex },
+    { part: 'Welting',    value: pick(orderData.colors?.welting, orderData.colors?.welting_zh),       hex: orderData.colors?.welting_hex },
+    { part: 'Lace',       value: pick(orderData.colors?.lace, orderData.colors?.lace_zh),             hex: orderData.colors?.lace_hex },
+    { part: 'Bridge',     value: pick(orderData.colors?.bridge, orderData.colors?.bridge_zh),         hex: orderData.colors?.bridge_hex },
+    { part: 'Web',        value: pick(orderData.colors?.web, orderData.colors?.web_zh),               hex: orderData.colors?.web_hex },
+    { part: 'Palm Shell', value: pick(orderData.colors?.palm_shell, orderData.colors?.palm_shell_zh), hex: orderData.colors?.palm_shell_hex },
+    { part: 'Piping',     value: pick(orderData.colors?.piping, orderData.colors?.piping_zh),         hex: orderData.colors?.piping_hex },
   ].filter(({ value }) => value && value.trim() !== '');
 
   const hasStructured = colorParts.length > 0 || structuredChanges.length > 0;
   const hasFreeform   = freeformChanges.length > 0;
 
   const specs = [
-    ['Sport',    `${orderData.sport || '-'} · ${orderData.player_type || '-'}`],
-    ['Hand',     orderData.hand || '-'],
-    ['Size',     orderData.size ? `${orderData.size}"` : '-'],
-    ['Position', orderData.position || '-'],
-    ['Web',      orderData.web_type || '-'],
+    [t.sportLabel,    `${orderData.sport || '-'} · ${orderData.player_type || '-'}`],
+    [t.handLabel,     orderData.hand || '-'],
+    [t.sizeLabel,     orderData.size ? `${orderData.size}"` : '-'],
+    [t.positionLabel, orderData.position || '-'],
+    [t.webLabel,      pick(orderData.web_type, orderData.web_type_zh) || '-'],
   ];
 
   const shellColor = resolveColor(orderData.colors?.wrist_hex, orderData.colors?.wrist || orderData.colors?.shell);
@@ -299,7 +458,7 @@ export default function OrderSheet({
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px', whiteSpace: 'nowrap' }}>ORDER SHEET</div>
+          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px', whiteSpace: 'nowrap' }}>{t.orderSheet}</div>
           <div style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '3px', color: '#b8922a', whiteSpace: 'nowrap' }}>{orderId}</div>
           <div style={{ fontSize: '9px', color: '#aaa', marginTop: '2px', whiteSpace: 'nowrap' }}>
             {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
@@ -311,11 +470,11 @@ export default function OrderSheet({
       <div style={{ display: 'flex', gap: '20px', marginTop: '12px', marginBottom: '12px' }}>
         <div style={{ flex: 1 }}>
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-            Color Changes
+            {t.colorChanges}
           </div>
 
           {!hasStructured && !hasFreeform ? (
-            <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>All As Per Reference Photo</div>
+            <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>{t.allAsPerPhoto}</div>
           ) : (
             <div style={{ display: 'flex', gap: '16px' }}>
               {hasStructured && (
@@ -328,7 +487,7 @@ export default function OrderSheet({
                         background: resolveColor(hex, value),
                       }} />
                       <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
-                      <div style={{ fontSize: '8px', color: '#aaa' }}>{part}</div>
+                      <div style={{ fontSize: '8px', color: '#aaa' }}>{partLabel(part)}</div>
                     </div>
                   ))}
                   {structuredChanges.map((change, i) => (
@@ -338,8 +497,8 @@ export default function OrderSheet({
                         border: '0.5px solid #ccc',
                         background: resolveColor(change.hex || change.swatch, change.color),
                       }} />
-                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{change.color}</div>
-                      <div style={{ fontSize: '8px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{change.part}</div>
+                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{pick(change.color, change.color_zh)}</div>
+                      <div style={{ fontSize: '8px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{pick(change.part, change.part_zh)}</div>
                     </div>
                   ))}
                 </div>
@@ -351,7 +510,7 @@ export default function OrderSheet({
 
               {hasFreeform && (
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>Additional Requests</div>
+                  <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>{t.additionalRequests}</div>
                   {freeformChanges.map((change, i) => (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '6px',
@@ -359,8 +518,8 @@ export default function OrderSheet({
                     }}>
                       <span style={{ color: '#b8922a', fontWeight: 700, flexShrink: 0 }}>→</span>
                       <span>
-                        <span style={{ fontWeight: 700 }}>{change.part}</span>
-                        {change.color && <span style={{ color: '#555' }}> : {change.color}</span>}
+                        <span style={{ fontWeight: 700 }}>{pick(change.part, change.part_zh)}</span>
+                        {change.color && <span style={{ color: '#555' }}> : {pick(change.color, change.color_zh)}</span>}
                       </span>
                     </div>
                   ))}
@@ -372,13 +531,13 @@ export default function OrderSheet({
 
         <div>
           <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-            Logo Patch
+            {t.logoPatch}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <GNLogo bgColor={bgColor} logoColor={logoColor} width={65} height={40} />
             <div style={{ fontSize: '10px', lineHeight: 1.9 }}>
-              <div>BG: <strong style={{ textTransform: 'capitalize' }}>{orderData.logo?.background || '-'}</strong></div>
-              <div>Logo: <strong style={{ color: logoColor, textTransform: 'capitalize' }}>{orderData.logo?.logo_color || '-'}</strong></div>
+              <div>{t.bg}: <strong style={{ textTransform: 'capitalize' }}>{pick(orderData.logo?.background, orderData.logo?.background_zh) || '-'}</strong></div>
+              <div>{t.logo}: <strong style={{ color: logoColor, textTransform: 'capitalize' }}>{pick(orderData.logo?.logo_color, orderData.logo?.logo_color_zh) || '-'}</strong></div>
             </div>
           </div>
         </div>
@@ -394,18 +553,19 @@ export default function OrderSheet({
 
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              Glove Reference Photos
+              {t.gloveRefPhotos}
             </div>
             <ReferencePhotos
               photos={orderData.reference_photos}
               fallback={orderData.reference_photo}
               selectedGlove={orderData.selected_glove}
+              noPhotoLabel={t.noPhoto}
             />
           </div>
 
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              Finger Add-ons & Embroidery Position Map
+              {t.fingerMap}
             </div>
             <svg
               width="100%"
@@ -435,17 +595,17 @@ export default function OrderSheet({
                       strokeWidth={padColor || isEmb ? 1.5 : 1}
                     />
                     <text x={p.cx} y={p.cy - 2} textAnchor="middle" fontSize={10} fill={padColor ? '#fff' : '#333'} fontWeight={700}>{p.n}</text>
-                    <text x={p.cx} y={p.cy + 9}  textAnchor="middle" fontSize={7}  fill={padColor ? '#eee' : '#666'}>{p.label}</text>
+                    <text x={p.cx} y={p.cy + 9}  textAnchor="middle" fontSize={7}  fill={padColor ? '#eee' : '#666'}>{posLabels[p.n] || p.label}</text>
                     {isNameEmb && <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={8} fill="#b8922a" fontWeight={700}>✍</text>}
                     {isFlagEmb && <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={8} fill="#b8922a" fontWeight={700}>🏁</text>}
-                    {padColor  && <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={7} fill="#555"   fontWeight={700}>PAD</text>}
+                    {padColor  && <text x={p.cx} y={p.cy - 20} textAnchor="middle" fontSize={7} fill="#555"   fontWeight={700}>{t.pad}</text>}
                     {hasHood && (
                       <g>
                         <path
                           d={`M ${p.cx - 10},${p.cy - 17} A 10,10 0 0,1 ${p.cx + 10},${p.cy - 17}`}
                           fill={shellColor} stroke="#555" strokeWidth={1}
                         />
-                        <text x={p.cx} y={p.cy - 22} textAnchor="middle" fontSize={6} fill="#555" fontWeight={700}>HOOD</text>
+                        <text x={p.cx} y={p.cy - 22} textAnchor="middle" fontSize={6} fill="#555" fontWeight={700}>{t.hood}</text>
                       </g>
                     )}
                   </g>
@@ -464,7 +624,7 @@ export default function OrderSheet({
                       stroke={highlight ? '#f0c040' : '#e0e0e0'}
                       strokeWidth={0.5}
                     />
-                    <text x={8} y={103} fontSize={9} fill="#555" fontWeight={700}>9 - Inner:</text>
+                    <text x={8} y={103} fontSize={9} fill="#555" fontWeight={700}>{`9 - ${t.inner}:`}</text>
                     {nameAt9 && (
                       <text x={72} y={103} fontSize={13}
                         fill={resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color)}
@@ -481,9 +641,9 @@ export default function OrderSheet({
               {(fingerPadIndex || fingerPadMiddle || fingerHood) && (
                 <g>
                   <rect x={2} y={72} width={414} height={14} rx={2} fill="#f0f0f0" />
-                  {fingerPadIndex  && <text x={8}   y={82} fontSize={7} fill="#333">{`PAD(Index): ${fingerPadIndex.color}`}</text>}
-                  {fingerPadMiddle && <text x={fingerPadIndex ? 160 : 8} y={82} fontSize={7} fill="#333">{`PAD(Middle): ${fingerPadMiddle.color}`}</text>}
-                  {fingerHood      && <text x={(fingerPadIndex || fingerPadMiddle) ? 320 : 8} y={82} fontSize={7} fill="#333">HOOD(shell)</text>}
+                  {fingerPadIndex  && <text x={8}   y={82} fontSize={7} fill="#333">{`${t.pad}(${posLabels['2']}): ${pick(fingerPadIndex.color, fingerPadIndex.color_zh)}`}</text>}
+                  {fingerPadMiddle && <text x={fingerPadIndex ? 160 : 8} y={82} fontSize={7} fill="#333">{`${t.pad}(${posLabels['3']}): ${pick(fingerPadMiddle.color, fingerPadMiddle.color_zh)}`}</text>}
+                  {fingerHood      && <text x={(fingerPadIndex || fingerPadMiddle) ? 320 : 8} y={82} fontSize={7} fill="#333">{`${t.hood}(shell)`}</text>}
                 </g>
               )}
             </svg>
@@ -495,7 +655,7 @@ export default function OrderSheet({
 
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              Glove Specs
+              {t.gloveSpecs}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
@@ -511,13 +671,13 @@ export default function OrderSheet({
 
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              Embroidery
+              {t.embroidery}
             </div>
 
             {/* 이름 자수 */}
             {orderData.embroidery?.name?.text ? (
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px' }}>① Name</div>
+                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px' }}>① {t.nameLabel}</div>
                 <div style={{
                   fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: '28px',
                   color: resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color),
@@ -527,17 +687,17 @@ export default function OrderSheet({
                   {orderData.embroidery.name.text}
                 </div>
                 <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px', textTransform: 'capitalize' }}>
-                  {orderData.embroidery.name.color} · #{orderData.embroidery.name.location} {POSITION_LABELS[orderData.embroidery.name.location] || ''}
+                  {pick(orderData.embroidery.name.color, orderData.embroidery.name.color_zh)} · #{orderData.embroidery.name.location} {posLabels[orderData.embroidery.name.location] || ''}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic', marginBottom: '8px' }}>No name embroidery</div>
+              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic', marginBottom: '8px' }}>{t.noNameEmb}</div>
             )}
 
             {/* 국기 자수 */}
             {flagCountry ? (
               <div style={{ marginTop: '4px' }}>
-                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '6px' }}>② Flag</div>
+                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '6px' }}>② {t.flagLabel}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <img
                     src={`/flags/${flagFile}.png`}
@@ -548,20 +708,20 @@ export default function OrderSheet({
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'capitalize' }}>{flagCountry}</div>
                     <div style={{ fontSize: '10px', color: '#aaa', marginTop: '2px' }}>
-                      #{orderData.embroidery.flag.location} {POSITION_LABELS[orderData.embroidery.flag.location] || ''}
+                      #{orderData.embroidery.flag.location} {posLabels[orderData.embroidery.flag.location] || ''}
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic' }}>No flag embroidery</div>
+              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic' }}>{t.noFlagEmb}</div>
             )}
           </div>
 
           {/* 배송지 */}
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              Ship To
+              {t.shipTo}
             </div>
             <div style={{ fontSize: '11px', lineHeight: 1.8 }}>
               <div style={{ fontWeight: 700, fontSize: '14px' }}>{orderData.customer?.name || '-'}</div>
@@ -574,16 +734,16 @@ export default function OrderSheet({
           {/* 장인 메시지 */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
-              ✍️ Message to the Craftsman
+              {t.messageToCraftsman}
             </div>
             <div style={{
               background: '#fffdf0', border: '0.5px solid #f0e08a',
               borderRadius: '4px', padding: '8px', fontSize: '11px',
               color: '#555', lineHeight: 1.7, flex: 1,
             }}>
-              {orderData.special_requests
-                ? orderData.special_requests
-                : <span style={{ color: '#ccc', fontStyle: 'italic' }}>No message</span>
+              {pick(orderData.special_requests, orderData.special_requests_zh)
+                ? pick(orderData.special_requests, orderData.special_requests_zh)
+                : <span style={{ color: '#ccc', fontStyle: 'italic' }}>{t.noMessage}</span>
               }
             </div>
           </div>
@@ -620,7 +780,7 @@ export default function OrderSheet({
             transition: 'all 0.2s',
           }}
         >
-          {confirmed ? '✅ CONFIRMED' : '✅ CONFIRM ORDER'}
+          {confirmed ? t.confirmed : t.confirmOrder}
         </button>
       </div>
     </div>

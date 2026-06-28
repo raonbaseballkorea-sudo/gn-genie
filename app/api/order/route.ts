@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { orderData, orderImageBase64, messages } = await req.json();
+    const { orderData, orderImageBase64, factoryImageBase64, messages } = await req.json();
 
     if (!orderData || typeof orderData !== 'object') {
       return NextResponse.json({ error: 'Invalid order data' }, { status: 400 });
@@ -95,6 +95,7 @@ export async function POST(req: NextRequest) {
 
     saveOrder(fullOrder);
 
+    // 고객용 — 고객 언어로 된 주문서
     const attachments: any[] = [];
     if (orderImageBase64) {
       attachments.push({
@@ -105,7 +106,17 @@ export async function POST(req: NextRequest) {
     }
 
     const chatHistory = formatChatHistory(messages || []);
-    attachments.push({
+
+    // 본인(Robin)용 — 고객용 주문서 + 공장용 중국어 작업지시서 + 대화 내용
+    const adminAttachments = [...attachments];
+    if (factoryImageBase64) {
+      adminAttachments.push({
+        filename: `factory-order-${orderId}-zh.jpg`,
+        content: Buffer.from(factoryImageBase64, 'base64'),
+        contentType: 'image/jpeg',
+      });
+    }
+    adminAttachments.push({
       filename: `chat-${orderId}.txt`,
       content: Buffer.from(chatHistory, 'utf-8'),
       contentType: 'text/plain',
@@ -125,13 +136,13 @@ export async function POST(req: NextRequest) {
           <h2 style="color:#111;letter-spacing:2px;">NEW ORDER — ${orderId}</h2>
           <p style="color:#555;">From: <strong>${orderData.customer?.name}</strong> (${customerEmail})</p>
           <p style="color:#555;">Date: ${orderDate}</p>
-          <p style="color:#888;font-size:13px;">Order sheet image and full chat history are attached.</p>
+          <p style="color:#888;font-size:13px;">Attached: customer order sheet, factory work order (Simplified Chinese), and full chat history.</p>
           <p style="color:#e88;font-size:13px;">⏳ Awaiting payment from customer.</p>
           <hr style="border:0.5px solid #eee;margin:16px 0;"/>
           <p style="font-size:11px;color:#aaa;">GN GLOVE · 30dayglove.com</p>
         </div>
       `,
-      attachments,
+      attachments: adminAttachments,
     });
     devLog('[ORDER] Admin email sent.');
 

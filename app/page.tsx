@@ -35,6 +35,7 @@ export default function ChatPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const orderSheetRef = useRef<HTMLDivElement>(null);
+  const factorySheetRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // ORDER_COMPLETE 텍스트가 시작되는 인덱스를 찾는 헬퍼
@@ -347,13 +348,13 @@ export default function ChatPage() {
     }
   };
 
-  const captureOrderSheet = async (): Promise<string | null> => {
-    if (!orderSheetRef.current) return null;
+  const captureOrderSheet = async (container: HTMLDivElement | null): Promise<string | null> => {
+    if (!container) return null;
     try {
-      const btn = document.getElementById('confirm-btn-area');
+      const btn = container.querySelector<HTMLDivElement>('#confirm-btn-area');
       if (btn) btn.style.display = 'none';
       const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(orderSheetRef.current, {
+      const canvas = await html2canvas(container, {
         scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
@@ -372,12 +373,13 @@ export default function ChatPage() {
     const lang = detectLanguage(messages.filter(m => m.role === 'user').map(m => m.content).join(' '));
     const t = ORDER_RESULT_TEXT[lang];
     try {
-      const orderImageBase64 = await captureOrderSheet();
+      const orderImageBase64 = await captureOrderSheet(orderSheetRef.current);
+      const factoryImageBase64 = await captureOrderSheet(factorySheetRef.current);
       const chatMessages = messages.map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderData, orderImageBase64, messages: chatMessages }),
+        body: JSON.stringify({ orderData, orderImageBase64, factoryImageBase64, messages: chatMessages }),
       });
       const data = await res.json();
       if (data.success) {
@@ -728,8 +730,11 @@ export default function ChatPage() {
         <div className="w-full max-w-3xl py-8">
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div ref={orderSheetRef}>
-              <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} />
+              <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} variant="customer" />
             </div>
+          </div>
+          <div ref={factorySheetRef} style={{ position: 'absolute', top: 0, left: '-9999px' }}>
+            <OrderSheet orderData={orderData} onConfirm={() => {}} variant="factory" />
           </div>
         </div>
       )}

@@ -106,6 +106,17 @@ NEVER put the same change in BOTH colors object AND color_changes — choose one
 - color_changes: use for freeform/visual descriptions. Keep customer's exact words as the part name. RULE: Standard part names must ALWAYS be written in English. Free-form natural language descriptions (e.g. "thumb leather", "엄지 가죽", "o couro do polegar") must be kept in the customer's original language exactly as they described it.
 - ABSOLUTE RULE: If the customer requested NO changes (e.g. "그대로", "same as photo", "없습니다", "no changes"), color_changes MUST be an empty array [] and all colors fields MUST be empty strings. NEVER populate these from photo analysis.
 
+## CRITICAL: Two order sheets — customer copy + factory copy
+The order sheet is sent to TWO destinations: the customer (in their own language) and our factory in China (which only reads Simplified Chinese). To prevent production errors from language confusion, you MUST provide a Simplified Chinese translation of every free-text field, in parallel "_zh" fields, IN ADDITION to the original-language fields:
+- "customer_language": the customer's detected language as an ISO 639-1 code (e.g. "ko", "ja", "zh", "es", "fr", "de", "it", "nl", "th", "tl", "en")
+- "special_requests_zh": Simplified Chinese translation of special_requests (empty string if special_requests is empty)
+- "web_type_zh": Simplified Chinese translation of web_type
+- For every entry in color_changes, add "part_zh" and "color_zh" — Simplified Chinese translations of "part" and "color"
+- For every filled color in the colors object, add a matching "_zh" field (e.g. "wrist_zh") with the Simplified Chinese translation of the color name
+- For logo.background and logo.logo_color, add "background_zh" and "logo_color_zh"
+- For embroidery.name.color, add "color_zh". Do NOT translate embroidery.name.text itself — it is embroidered exactly as typed.
+- Leave any "_zh" field as an empty string if its source field is empty.
+
 ## Color parts reference (ONLY explain when customer asks what can be changed)
 - Wrist: main back leather of the glove
 - Welting: leather strip running between finger panels
@@ -243,31 +254,32 @@ CRITICAL COLOR RULE: For EVERY color field, you MUST provide both the color name
 ORDER_COMPLETE:
 {
   "order_type": "catalog or photo",
+  "customer_language": "",
   "sport": "",
   "player_type": "",
   "hand": "",
   "size": "",
   "position": "",
-  "web_type": "",
+  "web_type": "", "web_type_zh": "",
   "colors": {
-    "wrist": "", "wrist_hex": "",
-    "welting": "", "welting_hex": "",
-    "lace": "", "lace_hex": "",
-    "bridge": "", "bridge_hex": "",
-    "web": "", "web_hex": "",
-    "palm_shell": "", "palm_shell_hex": "",
-    "piping": "", "piping_hex": ""
+    "wrist": "", "wrist_hex": "", "wrist_zh": "",
+    "welting": "", "welting_hex": "", "welting_zh": "",
+    "lace": "", "lace_hex": "", "lace_zh": "",
+    "bridge": "", "bridge_hex": "", "bridge_zh": "",
+    "web": "", "web_hex": "", "web_zh": "",
+    "palm_shell": "", "palm_shell_hex": "", "palm_shell_zh": "",
+    "piping": "", "piping_hex": "", "piping_zh": ""
   },
   "color_changes": [
-    {"part": "", "color": "", "hex": ""}
+    {"part": "", "color": "", "hex": "", "part_zh": "", "color_zh": ""}
   ],
   "embroidery": {
-    "name": {"text": "", "color": "", "color_hex": "", "location": ""},
+    "name": {"text": "", "color": "", "color_hex": "", "color_zh": "", "location": ""},
     "flag": {"country": "", "location": ""}
   },
   "logo": {
-    "background": "", "background_hex": "",
-    "logo_color": "", "logo_color_hex": ""
+    "background": "", "background_hex": "", "background_zh": "",
+    "logo_color": "", "logo_color_hex": "", "logo_color_zh": ""
   },
   "customer": {
     "name": "",
@@ -275,7 +287,7 @@ ORDER_COMPLETE:
     "phone": "",
     "address": ""
   },
-  "special_requests": "",
+  "special_requests": "", "special_requests_zh": "",
   "selected_glove": "",
   "reference_photo": ""
 }`;
