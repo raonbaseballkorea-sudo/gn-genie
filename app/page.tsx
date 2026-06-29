@@ -475,11 +475,17 @@ export default function ChatPage() {
         await (document as any).fonts.ready;
       }
       const html2canvas = (await import('html2canvas')).default;
+      // 부모가 overflow-x: auto로 가로 스크롤되는 경우, 보이는 영역만 캡처되어
+      // 우측이 잘리는 문제가 있었음 — 실제 전체 크기를 명시해서 강제로 전체 캡처
       const canvas = await html2canvas(container, {
         scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
+        width: container.scrollWidth,
+        height: container.scrollHeight,
+        windowWidth: container.scrollWidth,
+        windowHeight: container.scrollHeight,
       });
       if (btn) btn.style.display = '';
       return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
