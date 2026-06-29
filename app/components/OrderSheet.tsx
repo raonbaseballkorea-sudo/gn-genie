@@ -20,7 +20,7 @@ interface OrderData {
   };
   color_changes?: { part: string; color: string; hex?: string; swatch?: string; part_zh?: string; color_zh?: string }[];
   embroidery: {
-    name: { text: string; color: string; color_hex?: string; color_zh?: string; location: string };
+    name: { text: string; color: string; color_hex?: string; color_zh?: string; location: string; font_style?: 'script' | 'block' | 'elegant' };
     flag: { country: string; location: string };
   };
   logo: {
@@ -211,6 +211,17 @@ const LABELS: { [lang: string]: UILabels } = {
     messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
     confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob',
   },
+  pt: {
+    orderSheet: 'FOLHA DE PEDIDO', colorChanges: 'Alterações de Cor', additionalRequests: 'Pedidos Adicionais',
+    allAsPerPhoto: 'Tudo conforme a foto de referência', logoPatch: 'Emblema do Logo', bg: 'Fundo', logo: 'Logo',
+    gloveRefPhotos: 'Fotos de Referência da Luva', noPhoto: 'Nenhuma foto fornecida',
+    fingerMap: 'Acessórios de Dedo & Mapa de Bordado', gloveSpecs: 'Especificações da Luva',
+    sportLabel: 'Esporte', handLabel: 'Mão', sizeLabel: 'Tamanho', positionLabel: 'Posição', webLabel: 'Rede',
+    embroidery: 'Bordado', nameLabel: 'Nome', flagLabel: 'Bandeira',
+    noNameEmb: 'Sem bordado de nome', noFlagEmb: 'Sem bordado de bandeira', shipTo: 'Enviar para',
+    messageToCraftsman: '✍️ Mensagem para o Artesão', noMessage: 'Sem mensagem',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno',
+  },
 };
 
 function getLabels(lang?: string): UILabels {
@@ -220,6 +231,52 @@ function getLabels(lang?: string): UILabels {
 // 국기 파일명 정규화: 소문자 + 공백 제거
 function getFlagFile(country: string): string {
   return country.toLowerCase().replace(/\s+/g, '');
+}
+
+// 이름 자수 글자체 — 텍스트의 문자권(라틴/한글/일본어/중국어/태국어)과
+// 고객이 선택한 스타일(필기체/블록체/우아한체)에 따라 폰트를 결정
+type EmbroideryScript = 'latin' | 'ko' | 'ja' | 'zh' | 'th';
+type EmbroideryStyle = 'script' | 'block' | 'elegant';
+
+function detectEmbroideryScript(text: string): EmbroideryScript {
+  if (/[가-힣]/.test(text)) return 'ko';
+  if (/[぀-ヿ]/.test(text)) return 'ja';
+  if (/[一-鿿]/.test(text)) return 'zh';
+  if (/[ก-๿]/.test(text)) return 'th';
+  return 'latin';
+}
+
+const EMBROIDERY_FONTS: Record<EmbroideryScript, Record<EmbroideryStyle, { fontFamily: string; fontWeight?: number; fontStyle?: string }>> = {
+  latin: {
+    script: { fontFamily: "'Brush Script MT', cursive", fontStyle: 'italic' },
+    block: { fontFamily: "'Arial Black', Impact, sans-serif", fontWeight: 900 },
+    elegant: { fontFamily: "'Times New Roman', Georgia, serif", fontStyle: 'italic' },
+  },
+  ko: {
+    script: { fontFamily: "'Nanum Pen Script', cursive" },
+    block: { fontFamily: "'Black Han Sans', sans-serif" },
+    elegant: { fontFamily: "'Nanum Myeongjo', serif", fontWeight: 700 },
+  },
+  ja: {
+    script: { fontFamily: "'Yuji Syuku', serif" },
+    block: { fontFamily: "'Noto Sans JP', sans-serif", fontWeight: 900 },
+    elegant: { fontFamily: "'Noto Serif JP', serif", fontWeight: 700 },
+  },
+  zh: {
+    script: { fontFamily: "'Ma Shan Zheng', cursive" },
+    block: { fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 900 },
+    elegant: { fontFamily: "'Noto Serif SC', serif", fontWeight: 700 },
+  },
+  th: {
+    script: { fontFamily: "'Mali', cursive" },
+    block: { fontFamily: "'Kanit', sans-serif", fontWeight: 700 },
+    elegant: { fontFamily: "'Charm', serif", fontWeight: 700 },
+  },
+};
+
+function getEmbroideryFont(text: string, style?: EmbroideryStyle) {
+  const script = detectEmbroideryScript(text);
+  return EMBROIDERY_FONTS[script][style || 'script'];
 }
 
 function GNLogo({ bgColor, logoColor, width = 100, height = 61 }: {
@@ -625,14 +682,17 @@ export default function OrderSheet({
                       strokeWidth={0.5}
                     />
                     <text x={8} y={103} fontSize={9} fill="#555" fontWeight={700}>{`9 - ${t.inner}:`}</text>
-                    {nameAt9 && (
-                      <text x={72} y={103} fontSize={13}
-                        fill={resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color)}
-                        fontStyle="italic" fontFamily="Georgia, serif"
-                      >
-                        {orderData.embroidery.name.text}
-                      </text>
-                    )}
+                    {nameAt9 && (() => {
+                      const f = getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style);
+                      return (
+                        <text x={72} y={103} fontSize={13}
+                          fill={resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color)}
+                          fontStyle={f.fontStyle || 'normal'} fontWeight={f.fontWeight} fontFamily={f.fontFamily}
+                        >
+                          {orderData.embroidery.name.text}
+                        </text>
+                      );
+                    })()}
                   </>
                 );
               })()}
@@ -679,7 +739,8 @@ export default function OrderSheet({
               <div style={{ marginBottom: '12px' }}>
                 <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px' }}>① {t.nameLabel}</div>
                 <div style={{
-                  fontFamily: 'Georgia, serif', fontStyle: 'italic', fontSize: '28px',
+                  ...getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style),
+                  fontSize: '28px',
                   color: resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color),
                   background: '#f5f5f5', padding: '4px 12px', borderRadius: '3px',
                   display: 'inline-block', letterSpacing: '1px',

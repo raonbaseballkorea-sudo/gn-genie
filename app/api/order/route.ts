@@ -125,60 +125,63 @@ export async function POST(req: NextRequest) {
     const paymentLink = process.env.STRIPE_PAYMENT_LINK || '';
     const paymentUrl = `${paymentLink}?client_reference_id=${orderId}&prefilled_email=${encodeURIComponent(customerEmail || '')}`;
 
-    // Robin에게 발송
-    devLog('[ORDER] Sending admin email...');
-    await transporter.sendMail({
-      from: `GN Glove <${SMTP_USER}>`,
-      to: OWNER_EMAIL,
-      subject: `New Order: ${orderId} — ${orderData.customer?.name}`,
-      html: `
-        <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-          <h2 style="color:#111;letter-spacing:2px;">NEW ORDER — ${orderId}</h2>
-          <p style="color:#555;">From: <strong>${orderData.customer?.name}</strong> (${customerEmail})</p>
-          <p style="color:#555;">Date: ${orderDate}</p>
-          <p style="color:#888;font-size:13px;">Attached: customer order sheet, factory work order (Simplified Chinese), and full chat history.</p>
-          <p style="color:#e88;font-size:13px;">⏳ Awaiting payment from customer.</p>
-          <hr style="border:0.5px solid #eee;margin:16px 0;"/>
-          <p style="font-size:11px;color:#aaa;">GN GLOVE · 30dayglove.com</p>
-        </div>
-      `,
-      attachments: adminAttachments,
-    });
-    devLog('[ORDER] Admin email sent.');
-
-    // 고객에게 발송
-    if (customerEmail) {
-      devLog('[ORDER] Sending customer email to:', customerEmail);
-      await transporter.sendMail({
+    // Robin과 고객에게 동시에 발송 (순차 대기 대신 병렬로 보내 처리 시간 단축)
+    devLog('[ORDER] Sending admin + customer emails in parallel...');
+    const emailJobs: Promise<any>[] = [
+      transporter.sendMail({
         from: `GN Glove <${SMTP_USER}>`,
-        to: customerEmail,
-        subject: `Your GN Glove Order — ${orderId}`,
+        to: OWNER_EMAIL,
+        subject: `New Order: ${orderId} — ${orderData.customer?.name}`,
         html: `
           <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
-            <h2 style="color:#111;letter-spacing:2px;">GN GLOVE</h2>
-            <p style="color:#555;">Hi <strong>${orderData.customer?.name}</strong>,</p>
-            <p style="color:#555;">Your order <strong style="color:#b8922a;">${orderId}</strong> has been received.</p>
-            <p style="color:#555;">Please review your order sheet (attached) and complete your payment to begin production.</p>
-            <div style="text-align:center;margin:32px 0;">
-              <a href="${paymentUrl}"
-                 style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
-                COMPLETE PAYMENT — $169 →
-              </a>
-            </div>
-            <p style="color:#aaa;font-size:11px;text-align:center;">
-              Our craftsmen will begin production within 24 hours of payment.<br/>
-              Your glove will arrive at your door within 30 days.
-            </p>
-            <hr style="border:0.5px solid #eee;margin:20px 0;"/>
-            <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
+            <h2 style="color:#111;letter-spacing:2px;">NEW ORDER — ${orderId}</h2>
+            <p style="color:#555;">From: <strong>${orderData.customer?.name}</strong> (${customerEmail})</p>
+            <p style="color:#555;">Date: ${orderDate}</p>
+            <p style="color:#888;font-size:13px;">Attached: customer order sheet, factory work order (Simplified Chinese), and full chat history.</p>
+            <p style="color:#e88;font-size:13px;">⏳ Awaiting payment from customer.</p>
+            <hr style="border:0.5px solid #eee;margin:16px 0;"/>
+            <p style="font-size:11px;color:#aaa;">GN GLOVE · 30dayglove.com</p>
           </div>
         `,
-        attachments: orderImageBase64 ? [attachments[0]] : undefined,
-      });
-      devLog('[ORDER] Customer email sent.');
+        attachments: adminAttachments,
+      }),
+    ];
+
+    if (customerEmail) {
+      emailJobs.push(
+        transporter.sendMail({
+          from: `GN Glove <${SMTP_USER}>`,
+          to: customerEmail,
+          subject: `Your GN Glove Order — ${orderId}`,
+          html: `
+            <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
+              <h2 style="color:#111;letter-spacing:2px;">GN GLOVE</h2>
+              <p style="color:#555;">Hi <strong>${orderData.customer?.name}</strong>,</p>
+              <p style="color:#555;">Your order <strong style="color:#b8922a;">${orderId}</strong> has been received.</p>
+              <p style="color:#555;">Please review your order sheet (attached) and complete your payment to begin production.</p>
+              <div style="text-align:center;margin:32px 0;">
+                <a href="${paymentUrl}"
+                   style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
+                  COMPLETE PAYMENT — $169 →
+                </a>
+              </div>
+              <p style="color:#aaa;font-size:11px;text-align:center;">
+                Our craftsmen will begin production within 24 hours of payment.<br/>
+                Your glove will arrive at your door within 30 days.
+              </p>
+              <hr style="border:0.5px solid #eee;margin:20px 0;"/>
+              <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
+            </div>
+          `,
+          attachments: orderImageBase64 ? [attachments[0]] : undefined,
+        })
+      );
     } else {
       devLog('[ORDER] WARNING: No customer email — skipping.');
     }
+
+    await Promise.all(emailJobs);
+    devLog('[ORDER] Emails sent.');
 
     return NextResponse.json({ success: true, orderId });
 

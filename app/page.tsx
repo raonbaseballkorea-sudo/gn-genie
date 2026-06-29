@@ -21,11 +21,17 @@ export default function ChatPage() {
   const [orderData, setOrderData] = useState<any>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState<{ type: 'success' | 'error'; title: string; body: string; okLabel: string } | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState<Lang | null>(null);
+  const [orderProcessing, setOrderProcessing] = useState(false);
+  const selectedLanguageRef = useRef<Lang | null>(null);
 
   // useRef — 렌더링과 무관하게 항상 최신값 유지
   const uploadedImagesRef = useRef<{ base64: string; type: string }[]>([]);
   const pinnedImageRef = useRef<{ base64: string; type: string } | null>(null);
   const pinnedGloveRef = useRef<{ src: string; label: string } | null>(null);
+  const selectedGloveRawRef = useRef<{ id: string; category: string; label: string } | null>(null);
+  // 사진을 모델에 다시 보낼지 여부 — AI가 [[PHOTO_DONE]] 마커를 보내면 false로 전환
+  const photoNeededRef = useRef(true);
   const emailRef = useRef<string>('');
 
   // 화면 표시용 state (ref와 동기화)
@@ -44,16 +50,59 @@ export default function ChatPage() {
     return idx !== -1 ? idx : text.length;
   };
 
-  // 대화 내용의 문자 패턴으로 고객 언어를 추정 (한/일/중 + 일부 라틴어권 특수문자 기반)
-  type Lang = 'ko' | 'ja' | 'zh' | 'es' | 'fr' | 'de' | 'en';
-  const detectLanguage = (text: string): Lang => {
-    if (/[가-힣]/.test(text)) return 'ko';
-    if (/[぀-ヿ]/.test(text)) return 'ja';
-    if (/[一-鿿]/.test(text)) return 'zh';
-    if (/[ñ¿¡]/i.test(text)) return 'es';
-    if (/[àâçéèêîôûùëïÿœ]/i.test(text)) return 'fr';
-    if (/[äöüß]/i.test(text)) return 'de';
-    return 'en';
+  type Lang = 'en' | 'ko' | 'ja' | 'zh' | 'es' | 'fr' | 'de' | 'it' | 'nl' | 'th' | 'tl' | 'pt';
+
+  // 언어 선택 버튼 목록 — 채팅 진입 시 가장 먼저 보여줌
+  const LANGUAGES: { code: Lang; label: string }[] = [
+    { code: 'en', label: 'English' },
+    { code: 'ko', label: '한국어' },
+    { code: 'ja', label: '日本語' },
+    { code: 'zh', label: '中文' },
+    { code: 'es', label: 'Español' },
+    { code: 'fr', label: 'Français' },
+    { code: 'de', label: 'Deutsch' },
+    { code: 'it', label: 'Italiano' },
+    { code: 'nl', label: 'Nederlands' },
+    { code: 'th', label: 'ภาษาไทย' },
+    { code: 'tl', label: 'Filipino' },
+    { code: 'pt', label: 'Português' },
+  ];
+
+  const LANGUAGE_NAMES: Record<Lang, string> = {
+    en: 'English', ko: 'Korean', ja: 'Japanese', zh: 'Chinese', es: 'Spanish',
+    fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', th: 'Thai', tl: 'Filipino', pt: 'Portuguese',
+  };
+
+  // 카탈로그 글러브를 미리 선택한 경우의 환영 메시지
+  const CATALOG_WELCOME: Record<Lang, (label: string, category: string, imgTag: string) => string> = {
+    en: (l, c, img) => `Welcome to GN Glove! I have selected this glove for you: ${l} (${c}). ${img} Would you like to order this exact glove, or customize it further?`,
+    ko: (l, c, img) => `GN 글러브에 오신 것을 환영합니다! 선택하신 글러브입니다: ${l} (${c}). ${img} 이 글러브 그대로 주문하시겠어요, 아니면 커스터마이징하시겠어요?`,
+    ja: (l, c, img) => `GN GLOVEへようこそ！お選びいただいたグラブです: ${l} (${c})。${img} このまま注文しますか、それともカスタマイズしますか？`,
+    zh: (l, c, img) => `欢迎来到 GN GLOVE！这是您选择的手套：${l} (${c})。${img} 您想直接订购这款手套，还是想进一步定制？`,
+    es: (l, c, img) => `¡Bienvenido a GN Glove! Has seleccionado este guante: ${l} (${c}). ${img} ¿Quieres pedir este guante tal cual, o personalizarlo más?`,
+    fr: (l, c, img) => `Bienvenue chez GN Glove ! Vous avez sélectionné ce gant : ${l} (${c}). ${img} Voulez-vous commander ce gant tel quel, ou le personnaliser ?`,
+    de: (l, c, img) => `Willkommen bei GN Glove! Du hast diesen Handschuh ausgewählt: ${l} (${c}). ${img} Möchtest du diesen Handschuh genau so bestellen oder weiter anpassen?`,
+    it: (l, c, img) => `Benvenuto in GN Glove! Hai selezionato questo guanto: ${l} (${c}). ${img} Vuoi ordinare questo guanto così com'è, o personalizzarlo ulteriormente?`,
+    nl: (l, c, img) => `Welkom bij GN Glove! Je hebt deze handschoen geselecteerd: ${l} (${c}). ${img} Wil je deze handschoen precies zo bestellen, of verder aanpassen?`,
+    th: (l, c, img) => `ยินดีต้อนรับสู่ GN Glove! คุณได้เลือกถุงมือนี้: ${l} (${c}). ${img} ต้องการสั่งถุงมือนี้ตามเดิม หรือปรับแต่งเพิ่มเติม?`,
+    tl: (l, c, img) => `Maligayang pagdating sa GN Glove! Napili mo ang glove na ito: ${l} (${c}). ${img} Gusto mo bang i-order ang glove na ito mismo, o gawing custom pa?`,
+    pt: (l, c, img) => `Bem-vindo à GN Glove! Você selecionou esta luva: ${l} (${c}). ${img} Você gostaria de pedir esta luva exatamente assim, ou personalizá-la mais?`,
+  };
+
+  // 본인 사진으로 주문하는 경우의 업로드 안내
+  const UPLOAD_PROMPT: Record<Lang, string> = {
+    en: 'Great! Please upload 1 to 4 photos of the glove you\'d like to use as a reference.',
+    ko: '좋습니다! 참고하고 싶은 글러브 사진을 1장에서 4장까지 업로드해주세요.',
+    ja: 'かしこまりました！参考にしたいグラブの写真を1〜4枚アップロードしてください。',
+    zh: '好的！请上传1到4张您想作为参考的手套照片。',
+    es: '¡Perfecto! Sube de 1 a 4 fotos del guante que quieras usar como referencia.',
+    fr: 'Parfait ! Veuillez télécharger 1 à 4 photos du gant que vous souhaitez utiliser comme référence.',
+    de: 'Super! Bitte lade 1 bis 4 Fotos des Handschuhs hoch, den du als Referenz verwenden möchtest.',
+    it: 'Perfetto! Carica da 1 a 4 foto del guanto che vuoi usare come riferimento.',
+    nl: 'Geweldig! Upload 1 tot 4 foto\'s van de handschoen die je als referentie wilt gebruiken.',
+    th: 'เยี่ยมเลย! กรุณาอัปโหลดรูปถุงมือ 1 ถึง 4 รูปที่คุณต้องการใช้เป็นข้อมูลอ้างอิง',
+    tl: 'Maganda! Paki-upload ang 1 hanggang 4 na larawan ng glove na gusto mong gamiting reference.',
+    pt: 'Ótimo! Por favor, envie de 1 a 4 fotos da luva que você gostaria de usar como referência.',
   };
 
   const ORDER_RESULT_TEXT: Record<Lang, { successTitle: string; successBody: (orderId: string) => string; errorTitle: string; errorBody: string; okLabel: string }> = {
@@ -106,6 +155,56 @@ export default function ChatPage() {
       errorBody: 'Bitte versuchen Sie es erneut.',
       okLabel: 'OK',
     },
+    it: {
+      successTitle: 'Ordine confermato!',
+      successBody: (id) => `Il tuo ordine ${id} è stato ricevuto. Controlla la tua email per il riepilogo dell'ordine.\n\nSe qualcosa non è chiaro ai nostri artigiani, potremmo inviarti un'email di follow-up per confermare i dettagli — rispondi appena possibile per non ritardare la produzione.`,
+      errorTitle: 'Qualcosa è andato storto',
+      errorBody: 'Per favore riprova.',
+      okLabel: 'OK',
+    },
+    nl: {
+      successTitle: 'Bestelling bevestigd!',
+      successBody: (id) => `Je bestelling ${id} is ontvangen. Controleer je e-mail voor de bestelsamenvatting.\n\nAls iets in je bestelling onduidelijk is voor onze vakmensen, kunnen we je een vervolgmail sturen om details te bevestigen — reageer zo snel mogelijk zodat de productie niet vertraagd wordt.`,
+      errorTitle: 'Er is iets misgegaan',
+      errorBody: 'Probeer het opnieuw.',
+      okLabel: 'OK',
+    },
+    th: {
+      successTitle: 'ยืนยันคำสั่งซื้อแล้ว!',
+      successBody: (id) => `ได้รับคำสั่งซื้อ ${id} ของคุณแล้ว กรุณาตรวจสอบอีเมลของคุณเพื่อดูสรุปคำสั่งซื้อ\n\nหากมีส่วนใดในคำสั่งซื้อที่ช่างฝีมือของเราไม่ชัดเจน เราอาจส่งอีเมลติดตามเพื่อยืนยันรายละเอียด — กรุณาตอบกลับโดยเร็วที่สุดเพื่อไม่ให้การผลิตล่าช้า`,
+      errorTitle: 'มีบางอย่างผิดพลาด',
+      errorBody: 'กรุณาลองอีกครั้ง',
+      okLabel: 'ตกลง',
+    },
+    tl: {
+      successTitle: 'Nakumpirma ang Order!',
+      successBody: (id) => `Natanggap na ang order mo ${id}. Paki-check ang iyong email para sa buod ng order.\n\nKung may bahagi ng order na hindi malinaw sa aming mga craftsman, posibleng magpadala kami ng follow-up email para kumpirmahin ang detalye — paki-sagot agad para hindi maantala ang produksyon.`,
+      errorTitle: 'May Naging Mali',
+      errorBody: 'Pakisubukan ulit.',
+      okLabel: 'OK',
+    },
+    pt: {
+      successTitle: 'Pedido Confirmado!',
+      successBody: (id) => `Seu pedido ${id} foi recebido. Por favor, verifique seu e-mail para o resumo do pedido.\n\nSe algo no seu pedido não estiver claro para nossos artesãos, podemos enviar um e-mail de acompanhamento para confirmar os detalhes — por favor, responda o mais rápido possível para não atrasar a produção.`,
+      errorTitle: 'Algo deu errado',
+      errorBody: 'Por favor, tente novamente.',
+      okLabel: 'OK',
+    },
+  };
+
+  const PROCESSING_TEXT: Record<Lang, string> = {
+    en: 'Processing your order — please wait, this may take a moment...',
+    ko: '주문을 처리 중입니다 — 잠시만 기다려주세요...',
+    ja: 'ご注文を処理しています — しばらくお待ちください...',
+    zh: '正在处理您的订单 — 请稍候...',
+    es: 'Procesando tu pedido — por favor espera un momento...',
+    fr: 'Traitement de votre commande en cours — veuillez patienter...',
+    de: 'Ihre Bestellung wird verarbeitet — bitte warten Sie einen Moment...',
+    it: 'Elaborazione del tuo ordine in corso — attendi un momento...',
+    nl: 'Je bestelling wordt verwerkt — een moment geduld...',
+    th: 'กำลังดำเนินการคำสั่งซื้อของคุณ — กรุณารอสักครู่...',
+    tl: 'Pinoproseso ang iyong order — sandali lang...',
+    pt: 'Processando seu pedido — aguarde um momento...',
   };
 
   useEffect(() => {
@@ -119,11 +218,8 @@ export default function ChatPage() {
       sessionStorage.removeItem('selectedGlove');
       const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
       pinnedGloveRef.current = glove;
+      selectedGloveRawRef.current = selected;
       setPinnedGloveDisplay(glove);
-      setMessages([{
-        role: 'assistant',
-        content: `Welcome back! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
-      }]);
       setStep('chat');
     } else {
       setStep('select');
@@ -151,12 +247,9 @@ export default function ChatPage() {
         sessionStorage.removeItem('selectedGlove');
         const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
         pinnedGloveRef.current = glove;
+        selectedGloveRawRef.current = selected;
         setPinnedGloveDisplay(glove);
         setStep('chat');
-        setMessages([{
-          role: 'assistant',
-          content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
-        }]);
       } else {
         setStep('select');
       }
@@ -180,12 +273,9 @@ export default function ChatPage() {
         sessionStorage.removeItem('selectedGlove');
         const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
         pinnedGloveRef.current = glove;
+        selectedGloveRawRef.current = selected;
         setPinnedGloveDisplay(glove);
         setStep('chat');
-        setMessages([{
-          role: 'assistant',
-          content: `Welcome to GN Glove! I have selected this glove for you: ${selected.label} (${selected.category}). [SHOW_IMAGE: ${selected.category}/${selected.id}.jpg] Would you like to order this exact glove, or customize it further?`
-        }]);
       } else {
         setStep('select');
       }
@@ -193,6 +283,22 @@ export default function ChatPage() {
       alert(data.error);
     }
     setLoading(false);
+  };
+
+  // 언어 선택 버튼 클릭 시 — 선택 언어로 환영 메시지(카탈로그) 또는 업로드 안내(직접 사진) 표시
+  const chooseLanguage = (lang: Lang) => {
+    setSelectedLanguage(lang);
+    selectedLanguageRef.current = lang;
+    const selected = selectedGloveRawRef.current;
+    if (selected) {
+      const imgTag = `[SHOW_IMAGE: ${selected.category}/${selected.id}.jpg]`;
+      setMessages([{
+        role: 'assistant',
+        content: CATALOG_WELCOME[lang](selected.label, selected.category, imgTag),
+      }]);
+    } else {
+      setMessages([{ role: 'assistant', content: UPLOAD_PROMPT[lang] }]);
+    }
   };
 
   // 정사각형 캔버스에 흰 여백을 두고 비율 유지하며 그려넣는 공통 로직
@@ -264,6 +370,7 @@ export default function ChatPage() {
     if (!pinnedImageRef.current) {
       pinnedImageRef.current = resized[0];
     }
+    photoNeededRef.current = true;
   };
 
   const removeImage = (index: number) => {
@@ -283,7 +390,11 @@ export default function ChatPage() {
     setInput('');
     setLoading(true);
 
-    const firstImage = uploadedImagesRef.current[0] || pinnedImageRef.current;
+    // 5단계(사진에서 바꿀 거 있는지)까지는 매 턴 사진을 다시 보내고,
+    // AI가 [[PHOTO_DONE]] 마커로 6단계(자수) 진입을 알려오면 이후로는 전송 중단.
+    const firstImage = photoNeededRef.current
+      ? (uploadedImagesRef.current[0] || pinnedImageRef.current)
+      : null;
     const currentEmail = emailRef.current || email || sessionStorage.getItem('gnEmail') || '';
 
     console.log('[DEBUG] sendMessage — email:', currentEmail);
@@ -300,6 +411,7 @@ export default function ChatPage() {
           imageBase64: firstImage?.base64 || null,
           imageType: firstImage?.type || null,
           email: currentEmail,
+          language: selectedLanguageRef.current || 'en',
         }),
       });
 
@@ -328,7 +440,12 @@ export default function ChatPage() {
         setOrderData(finalOrder);
         setStep('order');
       } else {
-        setMessages([...newMessages, { role: 'assistant', content: data.message }]);
+        let replyText: string = data.message;
+        if (replyText.includes('[[PHOTO_DONE]]')) {
+          photoNeededRef.current = false;
+          replyText = replyText.replace('[[PHOTO_DONE]]', '');
+        }
+        setMessages([...newMessages, { role: 'assistant', content: replyText }]);
       }
     } catch (err) {
       console.error('[DEBUG] fetch error:', err);
@@ -353,9 +470,13 @@ export default function ChatPage() {
     try {
       const btn = container.querySelector<HTMLDivElement>('#confirm-btn-area');
       if (btn) btn.style.display = 'none';
+      // 자수 글꼴(구글 폰트)이 로딩 완료된 후에 캡처해야 깨지지 않음
+      if (typeof document !== 'undefined' && (document as any).fonts?.ready) {
+        await (document as any).fonts.ready;
+      }
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(container, {
-        scale: 2,
+        scale: 1.5,
         useCORS: true,
         backgroundColor: '#ffffff',
         logging: false,
@@ -370,11 +491,14 @@ export default function ChatPage() {
 
   const handleOrderConfirm = async () => {
     setLoading(true);
-    const lang = detectLanguage(messages.filter(m => m.role === 'user').map(m => m.content).join(' '));
+    setOrderProcessing(true);
+    const lang = selectedLanguageRef.current || 'en';
     const t = ORDER_RESULT_TEXT[lang];
     try {
-      const orderImageBase64 = await captureOrderSheet(orderSheetRef.current);
-      const factoryImageBase64 = await captureOrderSheet(factorySheetRef.current);
+      const [orderImageBase64, factoryImageBase64] = await Promise.all([
+        captureOrderSheet(orderSheetRef.current),
+        captureOrderSheet(factorySheetRef.current),
+      ]);
       const chatMessages = messages.map(m => ({ role: m.role, content: m.content }));
       const res = await fetch('/api/order', {
         method: 'POST',
@@ -392,6 +516,10 @@ export default function ChatPage() {
         uploadedImagesRef.current = [];
         pinnedImageRef.current = null;
         pinnedGloveRef.current = null;
+        selectedGloveRawRef.current = null;
+        photoNeededRef.current = true;
+        selectedLanguageRef.current = null;
+        setSelectedLanguage(null);
         setUploadedImagesDisplay([]);
         setPinnedGloveDisplay(null);
         setCode('');
@@ -403,6 +531,7 @@ export default function ChatPage() {
       setResultModal({ type: 'error', title: t.errorTitle, body: t.errorBody, okLabel: t.okLabel });
     }
     setLoading(false);
+    setOrderProcessing(false);
   };
 
   const renderMessage = (content: string, imageData?: { base64: string; type: string }[] | null) => {
@@ -491,6 +620,27 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
+
+      {/* 주문 처리 중 오버레이 — 캡처+이메일 발송에 시간이 걸려서, 에러로 오해하고 페이지를 이탈하지 않도록 표시 */}
+      {orderProcessing && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}
+        >
+          <div style={{ textAlign: 'center' }}>
+            <div
+              style={{
+                width: '40px', height: '40px', margin: '0 auto 16px',
+                border: '4px solid #374151', borderTopColor: '#facc15',
+                borderRadius: '50%', animation: 'gn-spin 0.8s linear infinite',
+              }}
+            />
+            <div style={{ color: '#facc15', fontSize: '14px', fontWeight: 600, maxWidth: '320px' }}>
+              {PROCESSING_TEXT[selectedLanguage || 'en']}
+            </div>
+          </div>
+          <style>{`@keyframes gn-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
 
       {/* 주문 결과 모달 */}
       {resultModal && (
@@ -654,7 +804,25 @@ export default function ChatPage() {
       )}
 
       {/* 채팅 */}
-      {step === 'chat' && (
+      {step === 'chat' && !selectedLanguage && (
+        <div className="w-full max-w-2xl flex flex-col h-screen items-center justify-center p-6">
+          <h1 className="text-xl font-bold text-yellow-400 mb-2">GN GLOVE</h1>
+          <p className="text-gray-400 mb-6">Please choose your language / 언어를 선택해주세요</p>
+          <div className="grid grid-cols-2 gap-3 w-full max-w-sm">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => chooseLanguage(l.code)}
+                className="bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-medium"
+              >
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {step === 'chat' && selectedLanguage && (
         <div className="w-full max-w-2xl flex flex-col h-screen">
           <div className="bg-gray-900 p-3 text-center">
             <h1 className="text-xl font-bold text-yellow-400">GN GLOVE Custom Consultant</h1>
