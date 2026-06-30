@@ -533,7 +533,7 @@ export default function OrderSheet({
         minWidth: '760px',
         minHeight: '1075px',
         margin: '0 auto',
-        padding: '24px',
+        padding: '48px 24px 24px 24px',
         display: 'flex',
         flexDirection: 'column',
       }}
