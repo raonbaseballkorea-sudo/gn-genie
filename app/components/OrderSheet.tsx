@@ -110,7 +110,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜',
     noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
     messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
-    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '加垫', hood: '护罩', inner: '内侧', addOns: '附加配件',
+    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '野手用指垫', hood: '投手用指套', inner: '内侧', addOns: '附加配件',
   },
   ko: {
     orderSheet: '주문서', colorChanges: '컬러 변경', additionalRequests: '추가 요청사항',
