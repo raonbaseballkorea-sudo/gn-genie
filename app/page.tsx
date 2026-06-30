@@ -578,12 +578,17 @@ export default function ChatPage() {
     ],
   };
 
-  const getFontOptions = (lang: Lang | null) => {
-    if (lang === 'ko') return FONT_OPTIONS.ko;
-    if (lang === 'ja') return FONT_OPTIONS.ja;
-    if (lang === 'zh') return FONT_OPTIONS.zh;
-    if (lang === 'th') return FONT_OPTIONS.th;
-    return FONT_OPTIONS.latin;
+  const detectScript = (text: string): string => {
+    if (/[가-힣]/.test(text)) return 'ko';
+    if (/[぀-ヿ一-鿿]/.test(text) && /[぀-ヿ]/.test(text)) return 'ja';
+    if (/[一-鿿]/.test(text)) return 'zh';
+    if (/[฀-๿]/.test(text)) return 'th';
+    return 'latin';
+  };
+
+  const getFontOptions = (text: string) => {
+    const script = detectScript(text);
+    return FONT_OPTIONS[script] || FONT_OPTIONS.latin;
   };
 
   const sendFontChoice = (choice: 'script' | 'block' | 'elegant') => {
@@ -591,10 +596,9 @@ export default function ChatPage() {
     sendMessage(labelMap[choice]);
   };
 
-  const renderFontPicker = () => {
-    const lang = selectedLanguage;
-    const sample = FONT_SAMPLE[lang || 'en'];
-    const options = getFontOptions(lang);
+  const renderFontPicker = (embroideryText: string) => {
+    const sample = embroideryText || FONT_SAMPLE[selectedLanguage || 'en'];
+    const options = getFontOptions(sample);
     const codes: ('script' | 'block' | 'elegant')[] = ['script', 'block', 'elegant'];
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
@@ -655,9 +659,11 @@ export default function ChatPage() {
     const cutIndex = findOrderCompleteIndex(content);
     let cleanContent = content.substring(0, cutIndex).trim();
 
-    // [FONT_PICK] 태그 감지
-    const hasFontPick = cleanContent.includes('[FONT_PICK]');
-    cleanContent = cleanContent.replace(/\[FONT_PICK\]/g, '').trim();
+    // [FONT_PICK:name] 태그 감지
+    const fontPickMatch = cleanContent.match(/\[FONT_PICK:([^\]]*)\]/);
+    const fontPickText = fontPickMatch ? fontPickMatch[1].trim() : '';
+    const hasFontPick = !!fontPickMatch || cleanContent.includes('[FONT_PICK]');
+    cleanContent = cleanContent.replace(/\[FONT_PICK:[^\]]*\]/g, '').replace(/\[FONT_PICK\]/g, '').trim();
 
     // [SHOW_IMAGE: ...] 파싱
     const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
@@ -677,7 +683,7 @@ export default function ChatPage() {
           }
           return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
         })}
-        {hasFontPick && renderFontPicker()}
+        {hasFontPick && renderFontPicker(fontPickText)}
       </>
     );
   };
