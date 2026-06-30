@@ -377,17 +377,18 @@ export default function ChatPage() {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const sendMessage = async () => {
-    if (!input.trim() && images.length === 0) return;
+  const sendMessage = async (overrideText?: string) => {
+    const text = overrideText !== undefined ? overrideText : input;
+    if (!text.trim() && images.length === 0) return;
 
     const userMessage: Message = {
       role: 'user',
-      content: input || '[USER_IMAGE]',
+      content: text || '[USER_IMAGE]',
       imageData: images.length > 0 ? [...images] : null,
     };
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
-    setInput('');
+    if (overrideText === undefined) setInput('');
     setLoading(true);
 
     // 5단계(사진에서 바꿀 거 있는지)까지는 매 턴 사진을 다시 보내고,
@@ -540,6 +541,98 @@ export default function ChatPage() {
     setOrderProcessing(false);
   };
 
+  // 언어별 폰트 피커 샘플 이름
+  const FONT_SAMPLE: Record<Lang, string> = {
+    ko: '홍길동', ja: '鈴木一郎', zh: '王小明', th: 'สมชาย',
+    en: 'John Smith', es: 'Carlos García', fr: 'Pierre Martin',
+    de: 'Hans Müller', it: 'Marco Rossi', nl: 'Jan de Vries',
+    tl: 'Juan dela Cruz', pt: 'João Silva',
+  };
+
+  // 언어별 폰트 정의 (OrderSheet.tsx의 EMBROIDERY_FONTS와 동기화)
+  const FONT_OPTIONS: Record<string, { label: string; fontFamily: string; fontStyle?: string; fontWeight?: number }[]> = {
+    latin: [
+      { label: 'Script', fontFamily: "'Brush Script MT', cursive", fontStyle: 'italic' },
+      { label: 'Block',  fontFamily: "'Arial Black', Impact, sans-serif", fontWeight: 900 },
+      { label: 'Elegant', fontFamily: "'Times New Roman', Georgia, serif", fontStyle: 'italic' },
+    ],
+    ko: [
+      { label: 'Script', fontFamily: "'Nanum Pen Script', cursive" },
+      { label: 'Block',  fontFamily: "'Black Han Sans', sans-serif" },
+      { label: 'Elegant', fontFamily: "'Nanum Myeongjo', serif", fontWeight: 700 },
+    ],
+    ja: [
+      { label: 'Script', fontFamily: "'Yuji Syuku', serif" },
+      { label: 'Block',  fontFamily: "'Noto Sans JP', sans-serif", fontWeight: 900 },
+      { label: 'Elegant', fontFamily: "'Noto Serif JP', serif", fontWeight: 700 },
+    ],
+    zh: [
+      { label: 'Script', fontFamily: "'Ma Shan Zheng', cursive" },
+      { label: 'Block',  fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 900 },
+      { label: 'Elegant', fontFamily: "'Noto Serif SC', serif", fontWeight: 700 },
+    ],
+    th: [
+      { label: 'Script', fontFamily: "'Mali', cursive" },
+      { label: 'Block',  fontFamily: "'Kanit', sans-serif", fontWeight: 700 },
+      { label: 'Elegant', fontFamily: "'Charm', serif", fontWeight: 700 },
+    ],
+  };
+
+  const getFontOptions = (lang: Lang | null) => {
+    if (lang === 'ko') return FONT_OPTIONS.ko;
+    if (lang === 'ja') return FONT_OPTIONS.ja;
+    if (lang === 'zh') return FONT_OPTIONS.zh;
+    if (lang === 'th') return FONT_OPTIONS.th;
+    return FONT_OPTIONS.latin;
+  };
+
+  const sendFontChoice = (choice: 'script' | 'block' | 'elegant') => {
+    const labelMap = { script: 'Script (Brush Script MT)', block: 'Block', elegant: 'Elegant' };
+    sendMessage(labelMap[choice]);
+  };
+
+  const renderFontPicker = () => {
+    const lang = selectedLanguage;
+    const sample = FONT_SAMPLE[lang || 'en'];
+    const options = getFontOptions(lang);
+    const codes: ('script' | 'block' | 'elegant')[] = ['script', 'block', 'elegant'];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+        {options.map((opt, i) => (
+          <button
+            key={i}
+            onClick={() => sendFontChoice(codes[i])}
+            style={{
+              background: i === 0 ? '#b8922a' : '#374151',
+              border: i === 0 ? '2px solid #facc15' : '2px solid #4b5563',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '2px',
+            }}
+          >
+            <span style={{ fontSize: '9px', color: i === 0 ? '#facc15' : '#9ca3af', letterSpacing: '1px', textTransform: 'uppercase' }}>
+              {opt.label}{i === 0 ? ' — Default' : ''}
+            </span>
+            <span style={{
+              fontFamily: opt.fontFamily,
+              fontStyle: opt.fontStyle || 'normal',
+              fontWeight: opt.fontWeight || 400,
+              fontSize: '22px',
+              color: '#fff',
+              lineHeight: 1.3,
+            }}>
+              {sample}
+            </span>
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const renderMessage = (content: string, imageData?: { base64: string; type: string }[] | null) => {
     // 유저 이미지 메시지
     if (content === '[USER_IMAGE]' && imageData && imageData.length > 0) {
@@ -560,24 +653,33 @@ export default function ChatPage() {
 
     // ORDER_COMPLETE 이후 텍스트(JSON 포함) 잘라내기
     const cutIndex = findOrderCompleteIndex(content);
-    const cleanContent = content.substring(0, cutIndex).trim();
+    let cleanContent = content.substring(0, cutIndex).trim();
+
+    // [FONT_PICK] 태그 감지
+    const hasFontPick = cleanContent.includes('[FONT_PICK]');
+    cleanContent = cleanContent.replace(/\[FONT_PICK\]/g, '').trim();
 
     // [SHOW_IMAGE: ...] 파싱
     const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
-    return parts.map((part, i) => {
-      if (i % 2 === 1) {
-        return (
-          <img
-            key={i}
-            src={`/gloves/${part}`}
-            alt="glove"
-            className="w-64 rounded-lg my-2 cursor-pointer"
-            onClick={() => setModalImage(`/gloves/${part}`)}
-          />
-        );
-      }
-      return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
-    });
+    return (
+      <>
+        {parts.map((part, i) => {
+          if (i % 2 === 1) {
+            return (
+              <img
+                key={i}
+                src={`/gloves/${part}`}
+                alt="glove"
+                className="w-64 rounded-lg my-2 cursor-pointer"
+                onClick={() => setModalImage(`/gloves/${part}`)}
+              />
+            );
+          }
+          return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
+        })}
+        {hasFontPick && renderFontPicker()}
+      </>
+    );
   };
 
   const renderPinnedImages = () => {
@@ -890,7 +992,7 @@ export default function ChatPage() {
               style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }}
             />
             <button
-              onClick={sendMessage}
+              onClick={() => sendMessage()}
               disabled={loading}
               className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0"
               style={{ height: '44px' }}
