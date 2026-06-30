@@ -492,11 +492,14 @@ export default function OrderSheet({
         background: 'white',
         color: '#111',
         fontFamily: 'Arial, sans-serif',
-        fontSize: '12px',
+        fontSize: '13px',
         maxWidth: '760px',
         minWidth: '760px',
+        minHeight: '1075px',
         margin: '0 auto',
-        padding: '20px',
+        padding: '24px',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
       {/* ── HEADER ─────────────────────────────────────────────── */}
@@ -510,14 +513,14 @@ export default function OrderSheet({
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
           <GNLogo bgColor={bgColor} logoColor={logoColor} width={100} height={61} />
           <div>
-            <div style={{ fontSize: '20px', fontWeight: 900, letterSpacing: '4px', whiteSpace: 'nowrap' }}>GN GLOVE</div>
-            <div style={{ fontSize: '9px', color: '#888', letterSpacing: '2px', whiteSpace: 'nowrap' }}>KOREAN CRAFT · CUSTOM ORDER</div>
+            <div style={{ fontSize: '23px', fontWeight: 900, letterSpacing: '4px', whiteSpace: 'nowrap' }}>GN GLOVE</div>
+            <div style={{ fontSize: '10px', color: '#888', letterSpacing: '2px', whiteSpace: 'nowrap' }}>KOREAN CRAFT · CUSTOM ORDER</div>
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: '13px', fontWeight: 700, letterSpacing: '2px', whiteSpace: 'nowrap' }}>{t.orderSheet}</div>
-          <div style={{ fontSize: '22px', fontWeight: 900, letterSpacing: '3px', color: '#b8922a', whiteSpace: 'nowrap' }}>{orderId}</div>
-          <div style={{ fontSize: '9px', color: '#aaa', marginTop: '2px', whiteSpace: 'nowrap' }}>
+          <div style={{ fontSize: '15px', fontWeight: 700, letterSpacing: '2px', whiteSpace: 'nowrap' }}>{t.orderSheet}</div>
+          <div style={{ fontSize: '26px', fontWeight: 900, letterSpacing: '3px', color: '#b8922a', whiteSpace: 'nowrap' }}>{orderId}</div>
+          <div style={{ fontSize: '10px', color: '#aaa', marginTop: '2px', whiteSpace: 'nowrap' }}>
             {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
           </div>
         </div>
@@ -526,7 +529,7 @@ export default function OrderSheet({
       {/* ── COLOR CHANGES + LOGO PATCH ─────────────────────────── */}
       <div style={{ display: 'flex', gap: '20px', marginTop: '12px', marginBottom: '12px' }}>
         <div style={{ flex: 1 }}>
-          <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
             {t.colorChanges}
           </div>
 
@@ -543,8 +546,8 @@ export default function OrderSheet({
                         border: '0.5px solid #ccc',
                         background: resolveColor(hex, value),
                       }} />
-                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
-                      <div style={{ fontSize: '8px', color: '#aaa' }}>{partLabel(part)}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
+                      <div style={{ fontSize: '10px', color: '#aaa' }}>{partLabel(part)}</div>
                     </div>
                   ))}
                   {structuredChanges.map((change, i) => (
@@ -554,8 +557,8 @@ export default function OrderSheet({
                         border: '0.5px solid #ccc',
                         background: resolveColor(change.hex || change.swatch, change.color),
                       }} />
-                      <div style={{ fontSize: '9px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{pick(change.color, change.color_zh)}</div>
-                      <div style={{ fontSize: '8px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{pick(change.part, change.part_zh)}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{pick(change.color, change.color_zh)}</div>
+                      <div style={{ fontSize: '10px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{pick(change.part, change.part_zh)}</div>
                     </div>
                   ))}
                 </div>
@@ -567,11 +570,11 @@ export default function OrderSheet({
 
               {hasFreeform && (
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>{t.additionalRequests}</div>
+                  <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>{t.additionalRequests}</div>
                   {freeformChanges.map((change, i) => (
                     <div key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: '6px',
-                      marginBottom: '4px', fontSize: '10px', color: '#333',
+                      marginBottom: '4px', fontSize: '12px', color: '#333',
                     }}>
                       <span style={{ color: '#b8922a', fontWeight: 700, flexShrink: 0 }}>→</span>
                       <span>
@@ -587,12 +590,12 @@ export default function OrderSheet({
         </div>
 
         <div>
-          <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
             {t.logoPatch}
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <GNLogo bgColor={bgColor} logoColor={logoColor} width={65} height={40} />
-            <div style={{ fontSize: '10px', lineHeight: 1.9 }}>
+            <div style={{ fontSize: '12px', lineHeight: 1.9 }}>
               <div>{t.bg}: <strong style={{ textTransform: 'capitalize' }}>{pick(orderData.logo?.background, orderData.logo?.background_zh) || '-'}</strong></div>
               <div>{t.logo}: <strong style={{ color: logoColor, textTransform: 'capitalize' }}>{pick(orderData.logo?.logo_color, orderData.logo?.logo_color_zh) || '-'}</strong></div>
             </div>
@@ -603,13 +606,13 @@ export default function OrderSheet({
       <div style={{ borderTop: '0.5px solid #ddd', marginBottom: '12px' }} />
 
       {/* ── MAIN BODY ──────────────────────────────────────────── */}
-      <div style={{ display: 'flex', gap: '16px' }}>
+      <div style={{ display: 'flex', gap: '16px', flex: 1 }}>
 
         {/* LEFT */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
           <div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.gloveRefPhotos}
             </div>
             <ReferencePhotos
@@ -621,7 +624,7 @@ export default function OrderSheet({
           </div>
 
           <div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.fingerMap}
             </div>
             <svg
@@ -714,15 +717,15 @@ export default function OrderSheet({
         <div style={{ width: '215px', flexShrink: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
 
           <div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.gloveSpecs}
             </div>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <tbody>
                 {specs.map(([label, value]) => (
                   <tr key={label} style={{ borderBottom: '0.5px solid #f0f0f0' }}>
-                    <td style={{ color: '#999', padding: '4px 0', width: '60px', fontSize: '11px' }}>{label}</td>
-                    <td style={{ fontWeight: 700, padding: '4px 0', fontSize: '11px', textTransform: 'capitalize' }}>{value}</td>
+                    <td style={{ color: '#999', padding: '5px 0', width: '60px', fontSize: '13px' }}>{label}</td>
+                    <td style={{ fontWeight: 700, padding: '5px 0', fontSize: '13px', textTransform: 'capitalize' }}>{value}</td>
                   </tr>
                 ))}
               </tbody>
@@ -730,14 +733,14 @@ export default function OrderSheet({
           </div>
 
           <div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.embroidery}
             </div>
 
             {/* 이름 자수 */}
             {orderData.embroidery?.name?.text ? (
               <div style={{ marginBottom: '12px' }}>
-                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px' }}>① {t.nameLabel}</div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px' }}>① {t.nameLabel}</div>
                 <div style={{
                   ...getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style),
                   fontSize: isFactory ? '48px' : '28px',
@@ -747,18 +750,18 @@ export default function OrderSheet({
                 }}>
                   {orderData.embroidery.name.text}
                 </div>
-                <div style={{ fontSize: '10px', color: '#aaa', marginTop: '4px', textTransform: 'capitalize' }}>
+                <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px', textTransform: 'capitalize' }}>
                   {pick(orderData.embroidery.name.color, orderData.embroidery.name.color_zh)} · #{orderData.embroidery.name.location} {posLabels[orderData.embroidery.name.location] || ''}
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic', marginBottom: '8px' }}>{t.noNameEmb}</div>
+              <div style={{ fontSize: '13px', color: '#ccc', fontStyle: 'italic', marginBottom: '8px' }}>{t.noNameEmb}</div>
             )}
 
             {/* 국기 자수 */}
             {flagCountry ? (
               <div style={{ marginTop: '4px' }}>
-                <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '6px' }}>② {t.flagLabel}</div>
+                <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '6px' }}>② {t.flagLabel}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <img
                     src={`/flags/${flagFile}.png`}
@@ -768,25 +771,25 @@ export default function OrderSheet({
                   />
                   <div>
                     <div style={{ fontSize: '13px', fontWeight: 700, textTransform: 'capitalize' }}>{flagCountry}</div>
-                    <div style={{ fontSize: '10px', color: '#aaa', marginTop: '2px' }}>
+                    <div style={{ fontSize: '12px', color: '#aaa', marginTop: '2px' }}>
                       #{orderData.embroidery.flag.location} {posLabels[orderData.embroidery.flag.location] || ''}
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#ccc', fontStyle: 'italic' }}>{t.noFlagEmb}</div>
+              <div style={{ fontSize: '13px', color: '#ccc', fontStyle: 'italic' }}>{t.noFlagEmb}</div>
             )}
           </div>
 
           {/* 배송지 — 고객용에만 표시, 공장용에는 개인정보 제외 */}
           {!isFactory && (
           <div>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.shipTo}
             </div>
-            <div style={{ fontSize: '11px', lineHeight: 1.8 }}>
-              <div style={{ fontWeight: 700, fontSize: '14px' }}>{orderData.customer?.name || '-'}</div>
+            <div style={{ fontSize: '13px', lineHeight: 1.8 }}>
+              <div style={{ fontWeight: 700, fontSize: '16px' }}>{orderData.customer?.name || '-'}</div>
               <div style={{ color: '#555', whiteSpace: 'pre-line' }}>{orderData.customer?.address || '-'}</div>
               {orderData.customer?.phone && <div style={{ color: '#555', marginTop: '4px' }}>{orderData.customer.phone}</div>}
               {orderData.customer?.email && <div style={{ color: '#555' }}>{orderData.customer.email}</div>}
@@ -796,12 +799,12 @@ export default function OrderSheet({
 
           {/* 장인 메시지 */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
               {t.messageToCraftsman}
             </div>
             <div style={{
               background: '#fffdf0', border: '0.5px solid #f0e08a',
-              borderRadius: '4px', padding: '8px', fontSize: '11px',
+              borderRadius: '4px', padding: '10px', fontSize: '13px',
               color: '#555', lineHeight: 1.7, flex: 1,
             }}>
               {pick(orderData.special_requests, orderData.special_requests_zh)
@@ -815,7 +818,7 @@ export default function OrderSheet({
 
       {/* ── FOOTER ─────────────────────────────────────────────── */}
       <div style={{
-        marginTop: '12px', textAlign: 'center', fontSize: '9px',
+        marginTop: '16px', textAlign: 'center', fontSize: '11px',
         color: '#ccc', letterSpacing: '1px',
         borderTop: '0.5px solid #eee', paddingTop: '8px',
       }}>
