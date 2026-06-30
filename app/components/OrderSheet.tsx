@@ -740,9 +740,9 @@ export default function OrderSheet({
                 <div style={{ fontSize: '9px', color: '#aaa', marginBottom: '4px' }}>① {t.nameLabel}</div>
                 <div style={{
                   ...getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style),
-                  fontSize: '28px',
+                  fontSize: isFactory ? '48px' : '28px',
                   color: resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color),
-                  background: '#f5f5f5', padding: '4px 12px', borderRadius: '3px',
+                  background: '#f5f5f5', padding: isFactory ? '8px 16px' : '4px 12px', borderRadius: '3px',
                   display: 'inline-block', letterSpacing: '1px',
                 }}>
                   {orderData.embroidery.name.text}
@@ -779,7 +779,8 @@ export default function OrderSheet({
             )}
           </div>
 
-          {/* 배송지 */}
+          {/* 배송지 — 고객용에만 표시, 공장용에는 개인정보 제외 */}
+          {!isFactory && (
           <div>
             <div style={{ fontSize: '9px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '3px', marginBottom: '6px' }}>
               {t.shipTo}
@@ -791,6 +792,7 @@ export default function OrderSheet({
               {orderData.customer?.email && <div style={{ color: '#555' }}>{orderData.customer.email}</div>}
             </div>
           </div>
+          )}
 
           {/* 장인 메시지 */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
