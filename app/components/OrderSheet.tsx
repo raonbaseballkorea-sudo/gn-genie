@@ -86,7 +86,7 @@ type UILabels = {
   fingerMap: string; gloveSpecs: string; sportLabel: string; handLabel: string; sizeLabel: string;
   positionLabel: string; webLabel: string; embroidery: string; nameLabel: string; flagLabel: string;
   noNameEmb: string; noFlagEmb: string; shipTo: string; messageToCraftsman: string; noMessage: string;
-  confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string;
+  confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string; addOns: string;
 };
 
 const LABELS: { [lang: string]: UILabels } = {
@@ -99,7 +99,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Embroidery', nameLabel: 'Name', flagLabel: 'Flag',
     noNameEmb: 'No name embroidery', noFlagEmb: 'No flag embroidery', shipTo: 'Ship To',
     messageToCraftsman: '✍️ Message to the Craftsman', noMessage: 'No message',
-    confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', pad: 'PAD', hood: 'HOOD', inner: 'Inner',
+    confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', pad: 'PAD', hood: 'HOOD', inner: 'Inner', addOns: 'Add-ons',
   },
   zh: {
     orderSheet: '工作指示单', colorChanges: '颜色变更', additionalRequests: '其他要求',
@@ -110,7 +110,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜',
     noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
     messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
-    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '加垫', hood: '护罩', inner: '内侧',
+    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '加垫', hood: '护罩', inner: '内侧', addOns: '附加配件',
   },
   ko: {
     orderSheet: '주문서', colorChanges: '컬러 변경', additionalRequests: '추가 요청사항',
@@ -121,7 +121,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '자수', nameLabel: '이름', flagLabel: '국기',
     noNameEmb: '이름 자수 없음', noFlagEmb: '국기 자수 없음', shipTo: '배송지',
     messageToCraftsman: '✍️ 장인에게 남기는 메시지', noMessage: '메시지 없음',
-    confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', pad: '패드', hood: '후드', inner: '내측',
+    confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', pad: '패드', hood: '후드', inner: '내측', addOns: '추가 옵션',
   },
   ja: {
     orderSheet: '注文書', colorChanges: 'カラー変更', additionalRequests: 'その他のリクエスト',
@@ -132,7 +132,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '刺繍', nameLabel: '名前', flagLabel: '国旗',
     noNameEmb: '名前刺繍なし', noFlagEmb: '国旗刺繍なし', shipTo: '配送先',
     messageToCraftsman: '✍️ 職人へのメッセージ', noMessage: 'メッセージなし',
-    confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', pad: 'パッド', hood: 'フード', inner: '内側',
+    confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', pad: 'パッド', hood: 'フード', inner: '内側', addOns: '追加オプション',
   },
   es: {
     orderSheet: 'HOJA DE PEDIDO', colorChanges: 'Cambios de Color', additionalRequests: 'Solicitudes Adicionales',
@@ -143,7 +143,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Bordado', nameLabel: 'Nombre', flagLabel: 'Bandera',
     noNameEmb: 'Sin bordado de nombre', noFlagEmb: 'Sin bordado de bandera', shipTo: 'Enviar a',
     messageToCraftsman: '✍️ Mensaje para el Artesano', noMessage: 'Sin mensaje',
-    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior', addOns: 'Complementos',
   },
   fr: {
     orderSheet: 'BON DE COMMANDE', colorChanges: 'Changements de Couleur', additionalRequests: 'Demandes Additionnelles',
@@ -154,7 +154,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Broderie', nameLabel: 'Nom', flagLabel: 'Drapeau',
     noNameEmb: 'Pas de broderie de nom', noFlagEmb: 'Pas de broderie de drapeau', shipTo: 'Livraison',
     messageToCraftsman: "✍️ Message à l'Artisan", noMessage: 'Aucun message',
-    confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur',
+    confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur', addOns: 'Accessoires',
   },
   de: {
     orderSheet: 'BESTELLBLATT', colorChanges: 'Farbänderungen', additionalRequests: 'Zusätzliche Wünsche',
@@ -165,7 +165,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Stickerei', nameLabel: 'Name', flagLabel: 'Flagge',
     noNameEmb: 'Keine Namensstickerei', noFlagEmb: 'Keine Flaggenstickerei', shipTo: 'Lieferadresse',
     messageToCraftsman: '✍️ Nachricht an den Handwerker', noMessage: 'Keine Nachricht',
-    confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen',
+    confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen', addOns: 'Zubehör',
   },
   it: {
     orderSheet: 'FOGLIO ORDINE', colorChanges: 'Cambi Colore', additionalRequests: 'Richieste Aggiuntive',
@@ -176,7 +176,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Ricamo', nameLabel: 'Nome', flagLabel: 'Bandiera',
     noNameEmb: 'Nessun ricamo del nome', noFlagEmb: 'Nessun ricamo della bandiera', shipTo: 'Spedizione',
     messageToCraftsman: "✍️ Messaggio all'Artigiano", noMessage: 'Nessun messaggio',
-    confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno',
+    confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno', addOns: 'Accessori',
   },
   nl: {
     orderSheet: 'BESTELFORMULIER', colorChanges: 'Kleurwijzigingen', additionalRequests: 'Extra Verzoeken',
@@ -187,7 +187,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Borduurwerk', nameLabel: 'Naam', flagLabel: 'Vlag',
     noNameEmb: 'Geen naamborduring', noFlagEmb: 'Geen vlagborduring', shipTo: 'Verzendadres',
     messageToCraftsman: '✍️ Bericht aan de Vakman', noMessage: 'Geen bericht',
-    confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen',
+    confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen', addOns: 'Extra opties',
   },
   th: {
     orderSheet: 'ใบสั่งซื้อ', colorChanges: 'การเปลี่ยนสี', additionalRequests: 'คำขอเพิ่มเติม',
@@ -198,7 +198,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'ปักชื่อ', nameLabel: 'ชื่อ', flagLabel: 'ธง',
     noNameEmb: 'ไม่มีการปักชื่อ', noFlagEmb: 'ไม่มีการปักธง', shipTo: 'จัดส่งไปที่',
     messageToCraftsman: '✍️ ข้อความถึงช่างฝีมือ', noMessage: 'ไม่มีข้อความ',
-    confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน',
+    confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน', addOns: 'ส่วนเสริม',
   },
   tl: {
     orderSheet: 'ORDER SHEET', colorChanges: 'Pagbabago ng Kulay', additionalRequests: 'Karagdagang Kahilingan',
@@ -209,7 +209,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Burda', nameLabel: 'Pangalan', flagLabel: 'Bandila',
     noNameEmb: 'Walang burda ng pangalan', noFlagEmb: 'Walang burda ng bandila', shipTo: 'Ipadala sa',
     messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
-    confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob',
+    confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob', addOns: 'Mga Add-on',
   },
   pt: {
     orderSheet: 'FOLHA DE PEDIDO', colorChanges: 'Alterações de Cor', additionalRequests: 'Pedidos Adicionais',
@@ -220,7 +220,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Bordado', nameLabel: 'Nome', flagLabel: 'Bandeira',
     noNameEmb: 'Sem bordado de nome', noFlagEmb: 'Sem bordado de bandeira', shipTo: 'Enviar para',
     messageToCraftsman: '✍️ Mensagem para o Artesão', noMessage: 'Sem mensagem',
-    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno', addOns: 'Adicionais',
   },
 };
 
@@ -418,6 +418,33 @@ export default function OrderSheet({
   const pick = (val?: string, valZh?: string) => (isFactory && valZh ? valZh : (val || ''));
   const partLabel = (en: string) => (isFactory ? (STANDARD_PART_LABELS_ZH[en] || en) : en);
 
+  // 공장용 스펙 값 중국어 변환 테이블
+  const SPEC_ZH: Record<string, string> = {
+    // sport
+    baseball: '棒球', softball: '垒球',
+    '야구': '棒球', '소프트볼': '垒球',
+    '野球': '棒球', 'ソフトボール': '垒球',
+    béisbol: '棒球', beisebol: '棒球',
+    // player_type
+    adult: '成人', youth: '青少年',
+    '성인': '成人', '어린이': '青少年', '유소년': '青少年',
+    '大人': '成人', '子供': '青少年',
+    adulto: '成人', jeune: '青少年',
+    // hand
+    RHT: '右投', LHT: '左投',
+    '우투': '右投', '좌투': '左投',
+    '右投げ': '右投', '左投げ': '左投',
+    // position
+    infield: '内野', outfield: '外野', pitcher: '投手', catcher: '捕手', 'first base': '一垒',
+    '내야': '内野', '외야': '外野', '투수': '投手', '포수': '捕手', '1루': '一垒',
+    '内野手': '内野', '外野手': '外野', '投手': '投手', '捕手': '捕手',
+  };
+  const specVal = (val?: string) => {
+    if (!val || !isFactory) return val || '-';
+    const lower = val.toLowerCase();
+    return SPEC_ZH[val] || SPEC_ZH[lower] || val;
+  };
+
   const handleConfirm = () => {
     if (confirmed) return;
     setConfirmed(true);
@@ -463,14 +490,21 @@ export default function OrderSheet({
     { part: 'Piping',     value: pick(orderData.colors?.piping, orderData.colors?.piping_zh),         hex: orderData.colors?.piping_hex },
   ].filter(({ value }) => value && value.trim() !== '');
 
-  const hasStructured = colorParts.length > 0 || structuredChanges.length > 0;
+  // 색상 변경 표시용 — fingerPad/Hood는 추가 옵션 섹션으로 분리
+  const isAddOn = (c: { part: string }) => {
+    const p = c.part.toLowerCase();
+    return p.includes('finger pad') || p.includes('finger hood') || p.includes('finger cover');
+  };
+  const colorOnlyStructured = structuredChanges.filter(c => !isAddOn(c));
+  const hasStructured = colorParts.length > 0 || colorOnlyStructured.length > 0;
   const hasFreeform   = freeformChanges.length > 0;
+  const hasAddOns     = !!(fingerPadIndex || fingerPadMiddle || fingerHood);
 
   const specs = [
-    [t.sportLabel,    `${orderData.sport || '-'} · ${orderData.player_type || '-'}`],
-    [t.handLabel,     orderData.hand || '-'],
+    [t.sportLabel,    `${specVal(orderData.sport)} · ${specVal(orderData.player_type)}`],
+    [t.handLabel,     specVal(orderData.hand)],
     [t.sizeLabel,     orderData.size ? `${orderData.size}"` : '-'],
-    [t.positionLabel, orderData.position || '-'],
+    [t.positionLabel, specVal(orderData.position)],
     [t.webLabel,      pick(orderData.web_type, orderData.web_type_zh) || '-'],
   ];
 
@@ -526,13 +560,14 @@ export default function OrderSheet({
         </div>
       </div>
 
-      {/* ── COLOR CHANGES + LOGO PATCH ─────────────────────────── */}
-      <div style={{ display: 'flex', gap: '20px', marginTop: '12px', marginBottom: '12px' }}>
-        <div style={{ flex: 1 }}>
+      {/* ── COLOR CHANGES / ADD-ONS / LOGO PATCH ──────────────── */}
+      <div style={{ display: 'flex', gap: '12px', marginTop: '12px', marginBottom: '12px', alignItems: 'flex-start' }}>
+
+        {/* 색상 변경 — 70% */}
+        <div style={{ flex: 7 }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
             {t.colorChanges}
           </div>
-
           {!hasStructured && !hasFreeform ? (
             <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>{t.allAsPerPhoto}</div>
           ) : (
@@ -541,41 +576,28 @@ export default function OrderSheet({
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   {colorParts.map(({ part, value, hex }) => (
                     <div key={part} style={{ textAlign: 'center' }}>
-                      <div style={{
-                        width: '30px', height: '30px', borderRadius: '3px',
-                        border: '0.5px solid #ccc',
-                        background: resolveColor(hex, value),
-                      }} />
+                      <div style={{ width: '30px', height: '30px', borderRadius: '3px', border: '0.5px solid #ccc', background: resolveColor(hex, value) }} />
                       <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{value}</div>
                       <div style={{ fontSize: '10px', color: '#aaa' }}>{partLabel(part)}</div>
                     </div>
                   ))}
-                  {structuredChanges.map((change, i) => (
+                  {colorOnlyStructured.map((change, i) => (
                     <div key={i} style={{ textAlign: 'center' }}>
-                      <div style={{
-                        width: '30px', height: '30px', borderRadius: '3px',
-                        border: '0.5px solid #ccc',
-                        background: resolveColor(change.hex || change.swatch, change.color),
-                      }} />
+                      <div style={{ width: '30px', height: '30px', borderRadius: '3px', border: '0.5px solid #ccc', background: resolveColor(change.hex || change.swatch, change.color) }} />
                       <div style={{ fontSize: '11px', fontWeight: 700, marginTop: '3px', textTransform: 'capitalize' }}>{pick(change.color, change.color_zh)}</div>
                       <div style={{ fontSize: '10px', color: '#aaa', maxWidth: '60px', wordBreak: 'break-word' }}>{pick(change.part, change.part_zh)}</div>
                     </div>
                   ))}
                 </div>
               )}
-
               {hasStructured && hasFreeform && (
                 <div style={{ width: '0.5px', background: '#e0e0e0', alignSelf: 'stretch', flexShrink: 0 }} />
               )}
-
               {hasFreeform && (
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '11px', color: '#aaa', marginBottom: '4px', fontWeight: 700 }}>{t.additionalRequests}</div>
                   {freeformChanges.map((change, i) => (
-                    <div key={i} style={{
-                      display: 'flex', alignItems: 'flex-start', gap: '6px',
-                      marginBottom: '4px', fontSize: '12px', color: '#333',
-                    }}>
+                    <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', marginBottom: '4px', fontSize: '12px', color: '#333' }}>
                       <span style={{ color: '#b8922a', fontWeight: 700, flexShrink: 0 }}>→</span>
                       <span>
                         <span style={{ fontWeight: 700 }}>{pick(change.part, change.part_zh)}</span>
@@ -589,7 +611,48 @@ export default function OrderSheet({
           )}
         </div>
 
-        <div>
+        {/* 추가 옵션 — 30% */}
+        <div style={{ flex: 3, borderLeft: '0.5px solid #e0e0e0', paddingLeft: '12px' }}>
+          <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
+            {t.addOns}
+          </div>
+          {!hasAddOns ? (
+            <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>—</div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {fingerHood && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8e1', border: '0.5px solid #f0c040', borderRadius: '4px', padding: '5px 8px' }}>
+                  <span style={{ fontSize: '16px' }}>🛡️</span>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.hood}</div>
+                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerHood.color, fingerHood.color_zh) || ''}</div>
+                  </div>
+                </div>
+              )}
+              {fingerPadIndex && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8e1', border: '0.5px solid #f0c040', borderRadius: '4px', padding: '5px 8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '3px', background: resolveColor(fingerPadIndex.hex, fingerPadIndex.color), border: '0.5px solid #ccc', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.pad} ({posLabels['2']})</div>
+                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerPadIndex.color, fingerPadIndex.color_zh)}</div>
+                  </div>
+                </div>
+              )}
+              {fingerPadMiddle && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8e1', border: '0.5px solid #f0c040', borderRadius: '4px', padding: '5px 8px' }}>
+                  <div style={{ width: '20px', height: '20px', borderRadius: '3px', background: resolveColor(fingerPadMiddle.hex, fingerPadMiddle.color), border: '0.5px solid #ccc', flexShrink: 0 }} />
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.pad} ({posLabels['3']})</div>
+                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerPadMiddle.color, fingerPadMiddle.color_zh)}</div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* 로고 패치 */}
+        <div style={{ borderLeft: '0.5px solid #e0e0e0', paddingLeft: '12px' }}>
           <div style={{ fontSize: '11px', fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '1px', borderBottom: '0.5px solid #e5e5e5', paddingBottom: '4px', marginBottom: '8px' }}>
             {t.logoPatch}
           </div>
