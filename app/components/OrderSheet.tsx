@@ -465,9 +465,11 @@ export default function OrderSheet({
 
   const allColorChanges = orderData.color_changes?.filter(c => c.part || c.color) || [];
 
-  const fingerPadIndex  = allColorChanges.find(c => c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('index'));
-  const fingerPadMiddle = allColorChanges.find(c => c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('middle'));
-  const fingerHood      = allColorChanges.find(c => c.part?.toLowerCase().includes('finger hood'));
+  const fingerPadIndex   = allColorChanges.find(c => c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('index'));
+  const fingerPadMiddle  = allColorChanges.find(c => c.part?.toLowerCase().includes('finger pad') && c.part?.toLowerCase().includes('middle'));
+  const fingerHoodIndex  = allColorChanges.find(c => c.part?.toLowerCase().includes('finger hood') && (c.part?.toLowerCase().includes('index') || !c.part?.toLowerCase().includes('middle')));
+  const fingerHoodMiddle = allColorChanges.find(c => c.part?.toLowerCase().includes('finger hood') && c.part?.toLowerCase().includes('middle'));
+  const fingerHood       = fingerHoodIndex || fingerHoodMiddle;
 
   const isStructuredChange = (c: { part: string }) => {
     const p = c.part.toLowerCase();
@@ -498,7 +500,7 @@ export default function OrderSheet({
   const colorOnlyStructured = structuredChanges.filter(c => !isAddOn(c));
   const hasStructured = colorParts.length > 0 || colorOnlyStructured.length > 0;
   const hasFreeform   = freeformChanges.length > 0;
-  const hasAddOns     = !!(fingerPadIndex || fingerPadMiddle || fingerHood);
+  const hasAddOns     = !!(fingerPadIndex || fingerPadMiddle || fingerHoodIndex || fingerHoodMiddle);
 
   const specs = [
     [t.sportLabel,    `${specVal(orderData.sport)} · ${specVal(orderData.player_type)}`],
@@ -620,12 +622,21 @@ export default function OrderSheet({
             <div style={{ fontSize: '11px', color: '#aaa', fontStyle: 'italic' }}>—</div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {fingerHood && (
+              {fingerHoodIndex && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8e1', border: '0.5px solid #f0c040', borderRadius: '4px', padding: '5px 8px' }}>
                   <span style={{ fontSize: '16px' }}>🛡️</span>
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.hood}</div>
-                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerHood.color, fingerHood.color_zh) || ''}</div>
+                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.hood} ({posLabels['2']})</div>
+                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerHoodIndex.color, fingerHoodIndex.color_zh) || ''}</div>
+                  </div>
+                </div>
+              )}
+              {fingerHoodMiddle && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#fff8e1', border: '0.5px solid #f0c040', borderRadius: '4px', padding: '5px 8px' }}>
+                  <span style={{ fontSize: '16px' }}>🛡️</span>
+                  <div>
+                    <div style={{ fontSize: '11px', fontWeight: 700 }}>{t.hood} ({posLabels['3']})</div>
+                    <div style={{ fontSize: '10px', color: '#888' }}>{pick(fingerHoodMiddle.color, fingerHoodMiddle.color_zh) || ''}</div>
                   </div>
                 </div>
               )}
@@ -707,7 +718,7 @@ export default function OrderSheet({
                 let padColor: string | null = null;
                 if (p.n === '2' && fingerPadIndex)  padColor = resolveColor(fingerPadIndex.hex, fingerPadIndex.color);
                 if (p.n === '3' && fingerPadMiddle) padColor = resolveColor(fingerPadMiddle.hex, fingerPadMiddle.color);
-                const hasHood = p.n === '2' && !!fingerHood;
+                const hasHood = (p.n === '2' && !!fingerHoodIndex) || (p.n === '3' && !!fingerHoodMiddle);
 
                 return (
                   <g key={p.n}>

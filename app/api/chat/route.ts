@@ -161,10 +161,11 @@ These are additions to the glove, not color changes. Record in color_changes wit
 - Middle finger example: {"part": "Finger Pad (Middle) Added", "color": "[color]", "hex": "[hex]"}
 
 ### Finger Hood
-- A leather cover over the tip of the index finger
+- A leather cover over the tip of a finger (almost always index, rarely middle)
 - Pitcher gloves only
 - Color is ALWAYS the same as the shell color — do NOT ask for a separate color
-- Record as: {"part": "Finger Hood Added", "color": "[same as shell color]", "hex": "[shell hex]"}
+- Record as: {"part": "Finger Hood (Index) Added", "color": "[same as shell color]", "hex": "[shell hex]"}
+- Middle finger example: {"part": "Finger Hood (Middle) Added", "color": "[same as shell color]", "hex": "[shell hex]"}
 - If customer requests a different color for the hood, inform them: "The finger hood is made in the same leather as the shell for structural consistency."
 
 ## Web style photo rule
