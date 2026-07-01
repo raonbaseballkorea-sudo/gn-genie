@@ -13,14 +13,20 @@ interface Message {
 export default function ChatPage() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'verify' | 'select' | 'chat' | 'order'>('email');
+  const [step, setStep] = useState<'email' | 'verify' | 'language' | 'intro' | 'select' | 'chat' | 'order'>('email');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // intro(주문방법 안내/Q&A) 스텝 전용 대화 — 실제 주문 messages와는 분리
+  const [introMessages, setIntroMessages] = useState<Message[]>([]);
+  const [introInput, setIntroInput] = useState('');
+  const introMessagesEndRef = useRef<HTMLDivElement>(null);
   const [images, setImages] = useState<{ base64: string; type: string }[]>([]);
   const [orderData, setOrderData] = useState<any>(null);
   const [modalImage, setModalImage] = useState<string | null>(null);
   const [resultModal, setResultModal] = useState<{ type: 'success' | 'error'; title: string; body: string; okLabel: string } | null>(null);
+  // "Start My Order" 버튼이 입력창 바로 위에 있어 오터치로 바로 주문이 시작되는 것을 막기 위한 확인 모달
+  const [showStartConfirm, setShowStartConfirm] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<Lang | null>(null);
   const [orderProcessing, setOrderProcessing] = useState(false);
   const selectedLanguageRef = useRef<Lang | null>(null);
@@ -37,6 +43,13 @@ export default function ChatPage() {
   // 화면 표시용 state (ref와 동기화)
   const [uploadedImagesDisplay, setUploadedImagesDisplay] = useState<{ base64: string; type: string }[]>([]);
   const [pinnedGloveDisplay, setPinnedGloveDisplay] = useState<{ src: string; label: string } | null>(null);
+
+  // 스펙 위저드 — sport/player_type/hand/position/size를 API 호출 없이 버튼으로 수집
+  type SpecField = 'sport' | 'player_type' | 'hand' | 'position' | 'size';
+  const [specStep, setSpecStep] = useState<SpecField | null>(null);
+  const specAnswersRef = useRef<Record<SpecField, string>>({ sport: '', player_type: '', hand: '', position: '', size: '' });
+  // FLOW B(사진 업로드)는 첫 API 응답(경고+색상 코멘트)이 온 직후에 위저드를 시작해야 하므로 대기 플래그로 표시
+  const specWizardPendingRef = useRef(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -207,28 +220,141 @@ export default function ChatPage() {
     pt: 'Processando seu pedido — aguarde um momento...',
   };
 
-  useEffect(() => {
-    const savedEmail = sessionStorage.getItem('gnEmail');
-    if (!savedEmail) return;
+  // 언어 선택 이후 화면(intro/select/chat)에서 쓰이는 UI 문구 — 선택된 언어로 전환
+  const UI_STRINGS: Record<Lang, {
+    inputPlaceholder: string; sendButton: string; typing: string; introPlaceholder: string;
+    startOrderButton: string; selectTitle: string; selectSubtitle: string; browseCatalogButton: string; uploadPhotoButton: string;
+    confirmStartBody: string; confirmStartYes: string; confirmStartCancel: string;
+  }> = {
+    en: {
+      inputPlaceholder: 'Type a message... (Shift+Enter for new line)', sendButton: 'Send', typing: 'Typing...',
+      introPlaceholder: 'Ask a question... (Shift+Enter for new line)', startOrderButton: 'Start My Order →',
+      selectTitle: 'How would you like to start?', selectSubtitle: 'Browse our collection or upload a reference photo',
+      browseCatalogButton: '🧤 Browse Our Catalog', uploadPhotoButton: '📷 Upload My Photo',
+      confirmStartBody: 'Start your order now? You can still ask questions after this.', confirmStartYes: 'Yes, Start', confirmStartCancel: 'Cancel',
+    },
+    ko: {
+      inputPlaceholder: '메시지를 입력하세요... (Shift+Enter로 줄바꿈)', sendButton: '전송', typing: '입력 중...',
+      introPlaceholder: '질문을 입력하세요... (Shift+Enter로 줄바꿈)', startOrderButton: '주문 시작하기 →',
+      selectTitle: '어떻게 시작하시겠어요?', selectSubtitle: '카탈로그를 둘러보거나 참고 사진을 업로드하세요',
+      browseCatalogButton: '🧤 카탈로그 보기', uploadPhotoButton: '📷 사진 업로드',
+      confirmStartBody: '주문을 시작할까요? 이후에도 질문하실 수 있어요.', confirmStartYes: '네, 시작할게요', confirmStartCancel: '취소',
+    },
+    ja: {
+      inputPlaceholder: 'メッセージを入力... (Shift+Enterで改行)', sendButton: '送信', typing: '入力中...',
+      introPlaceholder: '質問を入力... (Shift+Enterで改行)', startOrderButton: '注文を始める →',
+      selectTitle: 'どちらで始めますか？', selectSubtitle: 'カタログを見るか、参考写真をアップロードしてください',
+      browseCatalogButton: '🧤 カタログを見る', uploadPhotoButton: '📷 写真をアップロード',
+      confirmStartBody: '注文を始めますか？この後も質問できます。', confirmStartYes: 'はい、始めます', confirmStartCancel: 'キャンセル',
+    },
+    zh: {
+      inputPlaceholder: '输入消息...（Shift+Enter换行）', sendButton: '发送', typing: '正在输入...',
+      introPlaceholder: '输入您的问题...（Shift+Enter换行）', startOrderButton: '开始订购 →',
+      selectTitle: '您想如何开始？', selectSubtitle: '浏览我们的目录或上传参考照片',
+      browseCatalogButton: '🧤 浏览目录', uploadPhotoButton: '📷 上传照片',
+      confirmStartBody: '要开始订购吗？之后仍然可以提问。', confirmStartYes: '是的，开始', confirmStartCancel: '取消',
+    },
+    es: {
+      inputPlaceholder: 'Escribe un mensaje... (Shift+Enter para nueva línea)', sendButton: 'Enviar', typing: 'Escribiendo...',
+      introPlaceholder: 'Haz una pregunta... (Shift+Enter para nueva línea)', startOrderButton: 'Comenzar mi pedido →',
+      selectTitle: '¿Cómo te gustaría empezar?', selectSubtitle: 'Explora nuestro catálogo o sube una foto de referencia',
+      browseCatalogButton: '🧤 Ver catálogo', uploadPhotoButton: '📷 Subir mi foto',
+      confirmStartBody: '¿Deseas comenzar tu pedido? Aún puedes hacer preguntas después.', confirmStartYes: 'Sí, comenzar', confirmStartCancel: 'Cancelar',
+    },
+    fr: {
+      inputPlaceholder: 'Écrivez un message... (Maj+Entrée pour un saut de ligne)', sendButton: 'Envoyer', typing: "En train d'écrire...",
+      introPlaceholder: 'Posez une question... (Maj+Entrée pour un saut de ligne)', startOrderButton: 'Commencer ma commande →',
+      selectTitle: 'Comment souhaitez-vous commencer ?', selectSubtitle: 'Parcourez notre catalogue ou téléchargez une photo de référence',
+      browseCatalogButton: '🧤 Parcourir le catalogue', uploadPhotoButton: '📷 Télécharger ma photo',
+      confirmStartBody: 'Voulez-vous commencer votre commande ? Vous pourrez encore poser des questions après.', confirmStartYes: 'Oui, commencer', confirmStartCancel: 'Annuler',
+    },
+    de: {
+      inputPlaceholder: 'Nachricht eingeben... (Umschalt+Enter für neue Zeile)', sendButton: 'Senden', typing: 'Schreibt...',
+      introPlaceholder: 'Stelle eine Frage... (Umschalt+Enter für neue Zeile)', startOrderButton: 'Bestellung starten →',
+      selectTitle: 'Wie möchtest du starten?', selectSubtitle: 'Durchstöbere unseren Katalog oder lade ein Referenzfoto hoch',
+      browseCatalogButton: '🧤 Katalog durchsuchen', uploadPhotoButton: '📷 Foto hochladen',
+      confirmStartBody: 'Möchtest du deine Bestellung jetzt starten? Du kannst danach noch Fragen stellen.', confirmStartYes: 'Ja, starten', confirmStartCancel: 'Abbrechen',
+    },
+    it: {
+      inputPlaceholder: 'Scrivi un messaggio... (Maiusc+Invio per andare a capo)', sendButton: 'Invia', typing: 'Sta scrivendo...',
+      introPlaceholder: 'Fai una domanda... (Maiusc+Invio per andare a capo)', startOrderButton: 'Inizia il mio ordine →',
+      selectTitle: 'Come vuoi iniziare?', selectSubtitle: 'Sfoglia il nostro catalogo o carica una foto di riferimento',
+      browseCatalogButton: '🧤 Sfoglia il catalogo', uploadPhotoButton: '📷 Carica la mia foto',
+      confirmStartBody: 'Vuoi iniziare il tuo ordine ora? Potrai comunque fare domande dopo.', confirmStartYes: 'Sì, inizia', confirmStartCancel: 'Annulla',
+    },
+    nl: {
+      inputPlaceholder: 'Typ een bericht... (Shift+Enter voor nieuwe regel)', sendButton: 'Verzenden', typing: 'Aan het typen...',
+      introPlaceholder: 'Stel een vraag... (Shift+Enter voor nieuwe regel)', startOrderButton: 'Start mijn bestelling →',
+      selectTitle: 'Hoe wil je beginnen?', selectSubtitle: 'Blader door onze catalogus of upload een referentiefoto',
+      browseCatalogButton: '🧤 Bekijk catalogus', uploadPhotoButton: '📷 Foto uploaden',
+      confirmStartBody: 'Wil je nu je bestelling starten? Je kunt daarna nog vragen stellen.', confirmStartYes: 'Ja, starten', confirmStartCancel: 'Annuleren',
+    },
+    th: {
+      inputPlaceholder: 'พิมพ์ข้อความ... (Shift+Enter เพื่อขึ้นบรรทัดใหม่)', sendButton: 'ส่ง', typing: 'กำลังพิมพ์...',
+      introPlaceholder: 'พิมพ์คำถามของคุณ... (Shift+Enter เพื่อขึ้นบรรทัดใหม่)', startOrderButton: 'เริ่มสั่งซื้อ →',
+      selectTitle: 'คุณต้องการเริ่มต้นอย่างไร?', selectSubtitle: 'เลือกดูแคตตาล็อกของเราหรืออัปโหลดรูปภาพอ้างอิง',
+      browseCatalogButton: '🧤 ดูแคตตาล็อก', uploadPhotoButton: '📷 อัปโหลดรูปภาพ',
+      confirmStartBody: 'ต้องการเริ่มสั่งซื้อตอนนี้ไหม? คุณยังถามคำถามได้หลังจากนี้', confirmStartYes: 'ใช่ เริ่มเลย', confirmStartCancel: 'ยกเลิก',
+    },
+    tl: {
+      inputPlaceholder: 'Mag-type ng mensahe... (Shift+Enter para sa bagong linya)', sendButton: 'Ipadala', typing: 'Nagta-type...',
+      introPlaceholder: 'Magtanong... (Shift+Enter para sa bagong linya)', startOrderButton: 'Simulan ang Order Ko →',
+      selectTitle: 'Paano mo gustong magsimula?', selectSubtitle: 'Tingnan ang aming katalogo o mag-upload ng reference photo',
+      browseCatalogButton: '🧤 Tingnan ang Katalogo', uploadPhotoButton: '📷 I-upload ang Larawan Ko',
+      confirmStartBody: 'Simulan na ba ang order mo? Puwede ka pa ring magtanong pagkatapos nito.', confirmStartYes: 'Oo, simulan', confirmStartCancel: 'Kanselahin',
+    },
+    pt: {
+      inputPlaceholder: 'Digite uma mensagem... (Shift+Enter para nova linha)', sendButton: 'Enviar', typing: 'Digitando...',
+      introPlaceholder: 'Faça uma pergunta... (Shift+Enter para nova linha)', startOrderButton: 'Iniciar Meu Pedido →',
+      selectTitle: 'Como você gostaria de começar?', selectSubtitle: 'Explore nosso catálogo ou envie uma foto de referência',
+      browseCatalogButton: '🧤 Ver Catálogo', uploadPhotoButton: '📷 Enviar Minha Foto',
+      confirmStartBody: 'Deseja iniciar seu pedido agora? Você ainda pode fazer perguntas depois.', confirmStartYes: 'Sim, iniciar', confirmStartCancel: 'Cancelar',
+    },
+  };
+
+  // 로그인 직후 목적지 스텝 결정 — 카탈로그에서 돌아온 경우(글러브+언어 복원) vs 새로 시작하는 경우 공통 처리
+  const resolvePostLoginStep = () => {
     const saved = sessionStorage.getItem('selectedGlove');
     const selected = saved ? JSON.parse(saved) : null;
-    setEmail(savedEmail);
-    emailRef.current = savedEmail;
+    const savedLang = sessionStorage.getItem('gnLang') as Lang | null;
+    if (savedLang) {
+      setSelectedLanguage(savedLang);
+      selectedLanguageRef.current = savedLang;
+    }
     if (selected) {
       sessionStorage.removeItem('selectedGlove');
       const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
       pinnedGloveRef.current = glove;
       selectedGloveRawRef.current = selected;
       setPinnedGloveDisplay(glove);
-      setStep('chat');
-    } else {
+      if (savedLang) {
+        chooseLanguage(savedLang);
+        setStep('chat');
+      } else {
+        setStep('language');
+      }
+    } else if (savedLang) {
       setStep('select');
+    } else {
+      setStep('language');
     }
+  };
+
+  useEffect(() => {
+    const savedEmail = sessionStorage.getItem('gnEmail');
+    if (!savedEmail) return;
+    setEmail(savedEmail);
+    emailRef.current = savedEmail;
+    resolvePostLoginStep();
   }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, loading]);
+
+  useEffect(() => {
+    introMessagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [introMessages, loading]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -241,18 +367,7 @@ export default function ChatPage() {
     if (email) {
       sessionStorage.setItem('gnEmail', email);
       emailRef.current = email;
-      const saved = sessionStorage.getItem('selectedGlove');
-      const selected = saved ? JSON.parse(saved) : null;
-      if (selected) {
-        sessionStorage.removeItem('selectedGlove');
-        const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
-        pinnedGloveRef.current = glove;
-        selectedGloveRawRef.current = selected;
-        setPinnedGloveDisplay(glove);
-        setStep('chat');
-      } else {
-        setStep('select');
-      }
+      resolvePostLoginStep();
     }
   };
 
@@ -267,28 +382,28 @@ export default function ChatPage() {
     if (data.success) {
       sessionStorage.setItem('gnEmail', email);
       emailRef.current = email;
-      const saved = sessionStorage.getItem('selectedGlove');
-      const selected = saved ? JSON.parse(saved) : null;
-      if (selected) {
-        sessionStorage.removeItem('selectedGlove');
-        const glove = { src: `/gloves/${selected.category}/${selected.id}.jpg`, label: selected.label };
-        pinnedGloveRef.current = glove;
-        selectedGloveRawRef.current = selected;
-        setPinnedGloveDisplay(glove);
-        setStep('chat');
-      } else {
-        setStep('select');
-      }
+      resolvePostLoginStep();
     } else {
       alert(data.error);
     }
     setLoading(false);
   };
 
-  // 언어 선택 버튼 클릭 시 — 선택 언어로 환영 메시지(카탈로그) 또는 업로드 안내(직접 사진) 표시
+  // 언어 스텝에서 언어 버튼 클릭 시 — 언어를 확정하고 intro(주문방법 안내/Q&A) 스텝으로 이동
+  const pickLanguage = (lang: Lang) => {
+    setSelectedLanguage(lang);
+    selectedLanguageRef.current = lang;
+    sessionStorage.setItem('gnLang', lang);
+    setStep('intro');
+    sendIntroMessage();
+  };
+
+  // 실제 주문 채팅 진입 시 — 선택 언어로 환영 메시지(카탈로그) 또는 업로드 안내(직접 사진) 표시하고 스펙 위저드 시작
   const chooseLanguage = (lang: Lang) => {
     setSelectedLanguage(lang);
     selectedLanguageRef.current = lang;
+    sessionStorage.setItem('gnLang', lang);
+    specAnswersRef.current = { sport: '', player_type: '', hand: '', position: '', size: '' };
     const selected = selectedGloveRawRef.current;
     if (selected) {
       const imgTag = `[SHOW_IMAGE: ${selected.category}/${selected.id}.jpg]`;
@@ -296,8 +411,50 @@ export default function ChatPage() {
         role: 'assistant',
         content: CATALOG_WELCOME[lang](selected.label, selected.category, imgTag),
       }]);
+      // FLOW A: 카탈로그 글러브가 이미 선택된 경우 API 호출 없이 스펙 위저드를 바로 시작
+      setSpecStep('sport');
     } else {
+      // FLOW B: 사진 업로드는 첫 API 응답(경고+색상 코멘트) 직후에 위저드를 시작
+      specWizardPendingRef.current = true;
       setMessages([{ role: 'assistant', content: UPLOAD_PROMPT[lang] }]);
+    }
+  };
+
+  // intro(주문방법 안내/Q&A) 스텝 전용 API 호출 — mode: 'faq'로 /api/chat을 호출, ORDER_COMPLETE 로직은 전혀 타지 않음
+  const sendIntroMessage = async (overrideText?: string) => {
+    const isFirstTurn = introMessages.length === 0;
+    const text = overrideText !== undefined ? overrideText : introInput;
+    if (!isFirstTurn && !text.trim()) return;
+
+    const newIntroMessages = isFirstTurn ? introMessages : [...introMessages, { role: 'user' as const, content: text }];
+    if (!isFirstTurn) setIntroMessages(newIntroMessages);
+    if (overrideText === undefined) setIntroInput('');
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: newIntroMessages.map(m => ({ role: m.role, content: m.content })),
+          mode: 'faq',
+          language: selectedLanguageRef.current || 'en',
+        }),
+      });
+      const data = await res.json();
+      setIntroMessages([...newIntroMessages, { role: 'assistant', content: data.message }]);
+    } catch (err) {
+      setIntroMessages([...newIntroMessages, { role: 'assistant', content: 'Something went wrong. Please try again.' }]);
+    }
+    setLoading(false);
+  };
+
+  const handleIntroKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter') {
+      if (e.shiftKey) return;
+      if ((e.nativeEvent as any).isComposing) return;
+      e.preventDefault();
+      sendIntroMessage();
     }
   };
 
@@ -377,18 +534,8 @@ export default function ChatPage() {
     setImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const sendMessage = async (overrideText?: string) => {
-    const text = overrideText !== undefined ? overrideText : input;
-    if (!text.trim() && images.length === 0) return;
-
-    const userMessage: Message = {
-      role: 'user',
-      content: text || '[USER_IMAGE]',
-      imageData: images.length > 0 ? [...images] : null,
-    };
-    const newMessages = [...messages, userMessage];
-    setMessages(newMessages);
-    if (overrideText === undefined) setInput('');
+  // /api/chat 호출 + 응답 처리 — sendMessage와 스펙 위저드(마지막 답변 시점) 둘 다에서 재사용
+  const callChatAPI = async (newMessages: Message[]) => {
     setLoading(true);
 
     // 5단계(사진에서 바꿀 거 있는지)까지는 매 턴 사진을 다시 보내고,
@@ -398,7 +545,7 @@ export default function ChatPage() {
       : null;
     const currentEmail = emailRef.current || email || sessionStorage.getItem('gnEmail') || '';
 
-    console.log('[DEBUG] sendMessage — email:', currentEmail);
+    console.log('[DEBUG] callChatAPI — email:', currentEmail);
 
     try {
       const res = await fetch('/api/chat', {
@@ -447,6 +594,12 @@ export default function ChatPage() {
           replyText = replyText.replace('[[PHOTO_DONE]]', '');
         }
         setMessages([...newMessages, { role: 'assistant', content: replyText }]);
+
+        // FLOW B: 사진 업로드 후 첫 응답(경고+색상 코멘트)을 받은 직후 스펙 위저드 시작
+        if (specWizardPendingRef.current) {
+          specWizardPendingRef.current = false;
+          setSpecStep('sport');
+        }
       }
     } catch (err) {
       console.error('[DEBUG] fetch error:', err);
@@ -455,6 +608,22 @@ export default function ChatPage() {
 
     setImages([]);
     setLoading(false);
+  };
+
+  const sendMessage = async (overrideText?: string) => {
+    const text = overrideText !== undefined ? overrideText : input;
+    if (!text.trim() && images.length === 0) return;
+
+    const userMessage: Message = {
+      role: 'user',
+      content: text || '[USER_IMAGE]',
+      imageData: images.length > 0 ? [...images] : null,
+    };
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    if (overrideText === undefined) setInput('');
+
+    await callChatAPI(newMessages);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -637,6 +806,164 @@ export default function ChatPage() {
     );
   };
 
+  // 사이즈 가이드 — route.ts의 "Size guide by position"와 동기화 유지
+  const SIZE_GUIDE: { key: string; label: string; min: number; max: number; step: number }[] = [
+    { key: 'pitcher', label: 'Pitcher', min: 11.5, max: 12.0, step: 0.25 },
+    { key: 'infield', label: 'Infield', min: 11.25, max: 11.75, step: 0.25 },
+    { key: 'outfield', label: 'Outfield', min: 12.5, max: 13.0, step: 0.25 },
+    { key: 'first_base', label: 'First Base', min: 12.0, max: 13.0, step: 0.25 },
+    { key: 'catcher', label: 'Catcher', min: 32, max: 34, step: 1 },
+  ];
+
+  const SPEC_ORDER: SpecField[] = ['sport', 'player_type', 'hand', 'position', 'size'];
+
+  type SpecQuestionSet = Record<Exclude<SpecField, 'size'>, { question: string; options: { label: string; value: string }[] }>;
+
+  // 스펙 위저드 질문/버튼 라벨 — 12개 언어 전체 번역 (value는 언어와 무관하게 고정된 내부 코드 유지)
+  const SPEC_QUESTIONS_BY_LANG: Record<Lang, SpecQuestionSet> = {
+    en: {
+      sport: { question: 'Would you like a baseball or softball glove?', options: [{ label: '⚾ Baseball', value: 'baseball' }, { label: '🥎 Softball', value: 'softball' }] },
+      player_type: { question: 'Is this glove for an adult or youth player?', options: [{ label: 'Adult', value: 'adult' }, { label: 'Youth', value: 'youth' }] },
+      hand: { question: 'Which hand do you throw with?', options: [{ label: 'Right-Handed Throw (RHT)', value: 'RHT' }, { label: 'Left-Handed Throw (LHT)', value: 'LHT' }] },
+      position: { question: 'What position will this glove be used for?', options: [{ label: 'Pitcher', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'First Base', value: 'first_base' }, { label: 'Catcher', value: 'catcher' }] },
+    },
+    ko: {
+      sport: { question: '야구 글러브인가요, 소프트볼 글러브인가요?', options: [{ label: '⚾ 야구', value: 'baseball' }, { label: '🥎 소프트볼', value: 'softball' }] },
+      player_type: { question: '성인용인가요, 유소년용인가요?', options: [{ label: '성인', value: 'adult' }, { label: '유소년', value: 'youth' }] },
+      hand: { question: '어느 손으로 던지시나요?', options: [{ label: '오른손 (우투)', value: 'RHT' }, { label: '왼손 (좌투)', value: 'LHT' }] },
+      position: { question: '어느 포지션에서 사용하실 글러브인가요?', options: [{ label: '투수', value: 'pitcher' }, { label: '내야수', value: 'infield' }, { label: '외야수', value: 'outfield' }, { label: '1루수', value: 'first_base' }, { label: '포수', value: 'catcher' }] },
+    },
+    ja: {
+      sport: { question: '野球用ですか、ソフトボール用ですか？', options: [{ label: '⚾ 野球', value: 'baseball' }, { label: '🥎 ソフトボール', value: 'softball' }] },
+      player_type: { question: '大人用ですか、子供用ですか？', options: [{ label: '大人', value: 'adult' }, { label: '子供', value: 'youth' }] },
+      hand: { question: 'どちらの手で投げますか？', options: [{ label: '右投げ (RHT)', value: 'RHT' }, { label: '左投げ (LHT)', value: 'LHT' }] },
+      position: { question: 'どのポジションで使用しますか？', options: [{ label: 'ピッチャー', value: 'pitcher' }, { label: '内野手', value: 'infield' }, { label: '外野手', value: 'outfield' }, { label: 'ファースト', value: 'first_base' }, { label: 'キャッチャー', value: 'catcher' }] },
+    },
+    zh: {
+      sport: { question: '您想要棒球手套还是垒球手套？', options: [{ label: '⚾ 棒球', value: 'baseball' }, { label: '🥎 垒球', value: 'softball' }] },
+      player_type: { question: '这是成人用还是青少年用的手套？', options: [{ label: '成人', value: 'adult' }, { label: '青少年', value: 'youth' }] },
+      hand: { question: '您用哪只手投球？', options: [{ label: '右投 (RHT)', value: 'RHT' }, { label: '左投 (LHT)', value: 'LHT' }] },
+      position: { question: '这副手套用于什么位置？', options: [{ label: '投手', value: 'pitcher' }, { label: '内野手', value: 'infield' }, { label: '外野手', value: 'outfield' }, { label: '一垒手', value: 'first_base' }, { label: '捕手', value: 'catcher' }] },
+    },
+    es: {
+      sport: { question: '¿Quieres un guante de béisbol o de softbol?', options: [{ label: '⚾ Béisbol', value: 'baseball' }, { label: '🥎 Softbol', value: 'softball' }] },
+      player_type: { question: '¿Es para un jugador adulto o juvenil?', options: [{ label: 'Adulto', value: 'adult' }, { label: 'Juvenil', value: 'youth' }] },
+      hand: { question: '¿Con qué mano lanzas?', options: [{ label: 'Diestro (RHT)', value: 'RHT' }, { label: 'Zurdo (LHT)', value: 'LHT' }] },
+      position: { question: '¿Para qué posición será este guante?', options: [{ label: 'Pitcher', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Primera base', value: 'first_base' }, { label: 'Catcher', value: 'catcher' }] },
+    },
+    fr: {
+      sport: { question: 'Voulez-vous un gant de baseball ou de softball ?', options: [{ label: '⚾ Baseball', value: 'baseball' }, { label: '🥎 Softball', value: 'softball' }] },
+      player_type: { question: 'Ce gant est-il pour un joueur adulte ou junior ?', options: [{ label: 'Adulte', value: 'adult' }, { label: 'Junior', value: 'youth' }] },
+      hand: { question: 'Avec quelle main lancez-vous ?', options: [{ label: 'Droitier (RHT)', value: 'RHT' }, { label: 'Gaucher (LHT)', value: 'LHT' }] },
+      position: { question: 'Pour quel poste ce gant sera-t-il utilisé ?', options: [{ label: 'Lanceur', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Premier but', value: 'first_base' }, { label: 'Receveur', value: 'catcher' }] },
+    },
+    de: {
+      sport: { question: 'Möchtest du einen Baseball- oder Softball-Handschuh?', options: [{ label: '⚾ Baseball', value: 'baseball' }, { label: '🥎 Softball', value: 'softball' }] },
+      player_type: { question: 'Ist der Handschuh für einen Erwachsenen oder ein Kind?', options: [{ label: 'Erwachsener', value: 'adult' }, { label: 'Jugend', value: 'youth' }] },
+      hand: { question: 'Mit welcher Hand wirfst du?', options: [{ label: 'Rechtshänder (RHT)', value: 'RHT' }, { label: 'Linkshänder (LHT)', value: 'LHT' }] },
+      position: { question: 'Für welche Position wird dieser Handschuh verwendet?', options: [{ label: 'Pitcher', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Erste Base', value: 'first_base' }, { label: 'Catcher', value: 'catcher' }] },
+    },
+    it: {
+      sport: { question: 'Vuoi un guanto da baseball o da softball?', options: [{ label: '⚾ Baseball', value: 'baseball' }, { label: '🥎 Softball', value: 'softball' }] },
+      player_type: { question: 'Questo guanto è per un adulto o un giovane giocatore?', options: [{ label: 'Adulto', value: 'adult' }, { label: 'Giovanile', value: 'youth' }] },
+      hand: { question: 'Con quale mano lanci?', options: [{ label: 'Destro (RHT)', value: 'RHT' }, { label: 'Mancino (LHT)', value: 'LHT' }] },
+      position: { question: 'Per quale posizione sarà usato questo guanto?', options: [{ label: 'Lanciatore', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Prima base', value: 'first_base' }, { label: 'Ricevitore', value: 'catcher' }] },
+    },
+    nl: {
+      sport: { question: 'Wil je een honkbal- of softbalhandschoen?', options: [{ label: '⚾ Honkbal', value: 'baseball' }, { label: '🥎 Softbal', value: 'softball' }] },
+      player_type: { question: 'Is deze handschoen voor een volwassene of jeugdspeler?', options: [{ label: 'Volwassene', value: 'adult' }, { label: 'Jeugd', value: 'youth' }] },
+      hand: { question: 'Met welke hand gooi je?', options: [{ label: 'Rechtshandig (RHT)', value: 'RHT' }, { label: 'Linkshandig (LHT)', value: 'LHT' }] },
+      position: { question: 'Voor welke positie wordt deze handschoen gebruikt?', options: [{ label: 'Pitcher', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Eerste honk', value: 'first_base' }, { label: 'Catcher', value: 'catcher' }] },
+    },
+    th: {
+      sport: { question: 'คุณต้องการถุงมือเบสบอลหรือซอฟต์บอล?', options: [{ label: '⚾ เบสบอล', value: 'baseball' }, { label: '🥎 ซอฟต์บอล', value: 'softball' }] },
+      player_type: { question: 'ถุงมือนี้สำหรับผู้ใหญ่หรือเยาวชน?', options: [{ label: 'ผู้ใหญ่', value: 'adult' }, { label: 'เยาวชน', value: 'youth' }] },
+      hand: { question: 'คุณขว้างด้วยมือข้างไหน?', options: [{ label: 'ขวา (RHT)', value: 'RHT' }, { label: 'ซ้าย (LHT)', value: 'LHT' }] },
+      position: { question: 'ถุงมือนี้จะใช้ในตำแหน่งใด?', options: [{ label: 'พิทเชอร์', value: 'pitcher' }, { label: 'อินฟิลด์', value: 'infield' }, { label: 'เอาต์ฟิลด์', value: 'outfield' }, { label: 'เบสแรก', value: 'first_base' }, { label: 'แคชเชอร์', value: 'catcher' }] },
+    },
+    tl: {
+      sport: { question: 'Gusto mo ba ng baseball o softball glove?', options: [{ label: '⚾ Baseball', value: 'baseball' }, { label: '🥎 Softball', value: 'softball' }] },
+      player_type: { question: 'Para sa adult o youth player ang glove na ito?', options: [{ label: 'Adult', value: 'adult' }, { label: 'Youth', value: 'youth' }] },
+      hand: { question: 'Aling kamay ang panghagis mo?', options: [{ label: 'Kanang kamay (RHT)', value: 'RHT' }, { label: 'Kaliwang kamay (LHT)', value: 'LHT' }] },
+      position: { question: 'Anong posisyon ang gagamit ng glove na ito?', options: [{ label: 'Pitcher', value: 'pitcher' }, { label: 'Infield', value: 'infield' }, { label: 'Outfield', value: 'outfield' }, { label: 'Unang Base', value: 'first_base' }, { label: 'Catcher', value: 'catcher' }] },
+    },
+    pt: {
+      sport: { question: 'Você quer uma luva de beisebol ou softbol?', options: [{ label: '⚾ Beisebol', value: 'baseball' }, { label: '🥎 Softbol', value: 'softball' }] },
+      player_type: { question: 'Esta luva é para um jogador adulto ou infantil?', options: [{ label: 'Adulto', value: 'adult' }, { label: 'Infantil', value: 'youth' }] },
+      hand: { question: 'Com qual mão você arremessa?', options: [{ label: 'Destro (RHT)', value: 'RHT' }, { label: 'Canhoto (LHT)', value: 'LHT' }] },
+      position: { question: 'Para qual posição esta luva será usada?', options: [{ label: 'Arremessador', value: 'pitcher' }, { label: 'Interno', value: 'infield' }, { label: 'Externo', value: 'outfield' }, { label: 'Primeira Base', value: 'first_base' }, { label: 'Receptor', value: 'catcher' }] },
+    },
+  };
+
+  const SPEC_SIZE_QUESTION: Record<Lang, string> = {
+    en: 'What size would you like?', ko: '원하시는 사이즈를 선택해주세요', ja: '希望のサイズを選んでください',
+    zh: '请选择您想要的尺寸', es: '¿Qué talla te gustaría?', fr: 'Quelle taille souhaitez-vous ?',
+    de: 'Welche Größe möchtest du?', it: 'Che taglia desideri?', nl: 'Welke maat wil je?',
+    th: 'คุณต้องการขนาดไหน?', tl: 'Anong size ang gusto mo?', pt: 'Qual tamanho você gostaria?',
+  };
+
+  const SPEC_QUESTIONS = SPEC_QUESTIONS_BY_LANG[selectedLanguage || 'en'];
+
+  // position에서 고른 값의 범위/단위로 사이즈 버튼 목록 생성
+  const sizeOptionsForPosition = (positionKey: string): { label: string; value: string }[] => {
+    const guide = SIZE_GUIDE.find(p => p.key === positionKey);
+    if (!guide) return [];
+    const values: number[] = [];
+    for (let v = guide.min; v <= guide.max + 1e-6; v += guide.step) values.push(Math.round(v * 100) / 100);
+    return values.map(v => ({ label: `${v}"`, value: String(v) }));
+  };
+
+  // 스펙 위저드 질문 텍스트 — 버튼을 보여줄 때와 답변 후 대화 기록에 남길 때 동일하게 사용
+  const specQuestionText = (step: SpecField): string =>
+    step === 'size' ? SPEC_SIZE_QUESTION[selectedLanguage || 'en'] : SPEC_QUESTIONS[step].question;
+
+  // 스펙 위저드 답변 처리 — 매 답변은 로컬에서 대화 기록에만 추가하고, 마지막(size) 답변에서만 실제 API 호출
+  const answerSpec = (value: string, label: string) => {
+    const step = specStep;
+    if (!step) return;
+    const question = specQuestionText(step);
+    specAnswersRef.current[step] = value;
+
+    const newMessages = [...messages, { role: 'assistant' as const, content: question }, { role: 'user' as const, content: label }];
+    setMessages(newMessages);
+
+    const nextStep = SPEC_ORDER[SPEC_ORDER.indexOf(step) + 1] || null;
+    if (nextStep) {
+      setSpecStep(nextStep);
+    } else {
+      setSpecStep(null);
+      callChatAPI(newMessages);
+    }
+  };
+
+  const renderSpecPicker = () => {
+    if (!specStep) return null;
+    const options = specStep === 'size' ? sizeOptionsForPosition(specAnswersRef.current.position) : SPEC_QUESTIONS[specStep].options;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+        {options.map((opt, i) => (
+          <button
+            key={i}
+            onClick={() => answerSpec(opt.value, opt.label)}
+            style={{
+              background: '#374151',
+              border: '2px solid #4b5563',
+              borderRadius: '10px',
+              padding: '10px 14px',
+              cursor: 'pointer',
+              textAlign: 'left',
+              color: '#fff',
+              fontSize: '15px',
+              fontWeight: 500,
+            }}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  };
+
   const renderMessage = (content: string, imageData?: { base64: string; type: string }[] | null) => {
     // 유저 이미지 메시지
     if (content === '[USER_IMAGE]' && imageData && imageData.length > 0) {
@@ -731,6 +1058,7 @@ export default function ChatPage() {
   };
 
   const killSwitch = process.env.NEXT_PUBLIC_KILL_SWITCH === 'true';
+  const ui = UI_STRINGS[selectedLanguage || 'en'];
 
   return (
     <div className="min-h-screen bg-gray-950 text-white flex flex-col items-center justify-center p-4">
@@ -753,6 +1081,43 @@ export default function ChatPage() {
             </div>
           </div>
           <style>{`@keyframes gn-spin { to { transform: rotate(360deg); } }`}</style>
+        </div>
+      )}
+
+      {/* "Start My Order" 확인 모달 — 입력창 바로 위 버튼 오터치로 인한 실수 시작 방지 */}
+      {showStartConfirm && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '20px' }}
+        >
+          <div
+            style={{
+              background: '#111827',
+              border: '1px solid #facc15',
+              borderRadius: '14px',
+              padding: '28px 24px',
+              maxWidth: '380px',
+              width: '100%',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontSize: '14px', color: '#d1d5db', lineHeight: 1.6, marginBottom: '20px' }}>
+              {ui.confirmStartBody}
+            </div>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button
+                onClick={() => setShowStartConfirm(false)}
+                style={{ flex: 1, background: '#374151', color: '#fff', fontWeight: 700, border: 'none', borderRadius: '8px', padding: '12px', cursor: 'pointer' }}
+              >
+                {ui.confirmStartCancel}
+              </button>
+              <button
+                onClick={() => { setShowStartConfirm(false); setStep('select'); }}
+                style={{ flex: 1, background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '8px', padding: '12px', cursor: 'pointer' }}
+              >
+                {ui.confirmStartYes}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -820,7 +1185,7 @@ export default function ChatPage() {
         </div>
       )}
 
-      {(step === 'email' || step === 'verify' || step === 'select') && <Nav />}
+      {(step === 'email' || step === 'verify' || step === 'language' || step === 'select') && <Nav />}
 
       {/* 이메일 입력 */}
       {step === 'email' && (
@@ -890,35 +1255,32 @@ export default function ChatPage() {
       {/* 시작 방법 선택 */}
       {step === 'select' && (
         <div className="bg-gray-900 p-8 rounded-2xl w-full max-w-md">
-          <h1 className="text-2xl font-bold text-yellow-400 mb-2">How would you like to start?</h1>
-          <p className="text-gray-400 mb-8">Browse our collection or upload a reference photo</p>
+          <h1 className="text-2xl font-bold text-yellow-400 mb-2">{ui.selectTitle}</h1>
+          <p className="text-gray-400 mb-8">{ui.selectSubtitle}</p>
           <div className="flex flex-col gap-4">
             <button
               onClick={() => window.location.href = '/catalog'}
               className="w-full bg-yellow-400 text-black font-bold py-4 rounded-xl hover:bg-yellow-300 text-lg"
             >
-              🧤 Browse Our Catalog
+              {ui.browseCatalogButton}
             </button>
             <button
               onClick={() => {
                 sessionStorage.setItem('gnEmail', email);
                 emailRef.current = email;
                 setStep('chat');
-                setMessages([{
-                  role: 'assistant',
-                  content: "🇺🇸 Welcome to GN Glove! I can chat in English, Korean, Japanese, Chinese, Spanish, French, German, and more.\n🇰🇷 GN Glove에 오신 걸 환영합니다! 한국어로도 대화 가능합니다.\n🇯🇵 GN Gloveへようこそ！日本語でも対応可能です。\n🇨🇳 欢迎来到GN Glove！也支持中文对话。\n🇪🇸 ¡Bienvenido a GN Glove! También hablamos español.\n🇫🇷 Bienvenue chez GN Glove ! Nous parlons aussi français.\n🇩🇪 Willkommen bei GN Glove! Wir sprechen auch Deutsch.\n\n👉 Just reply in your language and I'll continue in it!\n\nPlease upload 1 to 4 reference photos of the glove style you'd like — we'll make it exactly as shown, with any changes you tell us. If you have a specific embroidery design in mind, you're welcome to upload that too — just keep in mind gloves have a small embroidery area, so very large or detailed artwork (like a painting) can't be reproduced; simple designs that fit a small embroidery space work best.",
-                }]);
+                chooseLanguage(selectedLanguageRef.current || 'en');
               }}
               className="w-full bg-gray-700 text-white font-bold py-4 rounded-xl hover:bg-gray-600 text-lg"
             >
-              📷 Upload My Photo
+              {ui.uploadPhotoButton}
             </button>
           </div>
         </div>
       )}
 
-      {/* 채팅 */}
-      {step === 'chat' && !selectedLanguage && (
+      {/* 언어 선택 — 로그인 직후 가장 먼저 표시 */}
+      {step === 'language' && (
         <div className="w-full max-w-2xl flex flex-col h-screen items-center justify-center p-6">
           <h1 className="text-xl font-bold text-yellow-400 mb-2">GN GLOVE</h1>
           <p className="text-gray-400 mb-6">Please choose your language / 언어를 선택해주세요</p>
@@ -926,7 +1288,7 @@ export default function ChatPage() {
             {LANGUAGES.map((l) => (
               <button
                 key={l.code}
-                onClick={() => chooseLanguage(l.code)}
+                onClick={() => pickLanguage(l.code)}
                 className="bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-lg font-medium"
               >
                 {l.label}
@@ -936,7 +1298,55 @@ export default function ChatPage() {
         </div>
       )}
 
-      {step === 'chat' && selectedLanguage && (
+      {/* intro — 언어 선택 직후, 주문방법 안내 + Q&A. "Start My Order"를 누르면 select 스텝으로 이동 */}
+      {step === 'intro' && (
+        <div className="w-full max-w-2xl flex flex-col h-screen">
+          <div className="bg-gray-900 p-3 text-center">
+            <h1 className="text-xl font-bold text-yellow-400">GN GLOVE</h1>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {introMessages.map((msg, i) => (
+              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl whitespace-pre-wrap ${msg.role === 'user' ? 'bg-yellow-400 text-black' : 'bg-gray-800'}`}>
+                  {msg.content}
+                </div>
+              </div>
+            ))}
+            {loading && <div className="text-gray-400 text-sm">{ui.typing}</div>}
+            <div ref={introMessagesEndRef} />
+          </div>
+
+          <div className="px-4 pb-2">
+            <button
+              onClick={() => setShowStartConfirm(true)}
+              className="w-full bg-yellow-400 text-black font-bold py-3 rounded-lg hover:bg-yellow-300"
+            >
+              {ui.startOrderButton}
+            </button>
+          </div>
+
+          <div className="p-4 bg-gray-900 flex gap-2 items-end">
+            <textarea
+              className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed"
+              placeholder={ui.introPlaceholder}
+              value={introInput}
+              onChange={e => setIntroInput(e.target.value)}
+              onKeyDown={handleIntroKeyDown}
+              rows={1}
+              style={{ minHeight: '44px', maxHeight: '120px', overflowY: 'auto' }}
+            />
+            <button
+              onClick={() => sendIntroMessage()}
+              disabled={loading}
+              className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0"
+              style={{ height: '44px' }}
+            >{ui.sendButton}</button>
+          </div>
+        </div>
+      )}
+
+      {step === 'chat' && (
         <div className="w-full max-w-2xl flex flex-col h-screen">
           <div className="bg-gray-900 p-3 text-center">
             <h1 className="text-xl font-bold text-yellow-400">GN GLOVE Custom Consultant</h1>
@@ -957,7 +1367,15 @@ export default function ChatPage() {
                 </div>
               </div>
             ))}
-            {loading && <div className="text-gray-400 text-sm">Typing...</div>}
+            {specStep && (
+              <div className="flex justify-start">
+                <div className="max-w-xs lg:max-w-md p-3 rounded-2xl bg-gray-800">
+                  <div className="whitespace-pre-wrap">{specQuestionText(specStep)}</div>
+                  {renderSpecPicker()}
+                </div>
+              </div>
+            )}
+            {loading && <div className="text-gray-400 text-sm">{ui.typing}</div>}
             <div ref={messagesEndRef} />
           </div>
 
@@ -990,7 +1408,7 @@ export default function ChatPage() {
             <textarea
               ref={textareaRef}
               className="flex-1 bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed"
-              placeholder="Type a message... (Shift+Enter for new line)"
+              placeholder={ui.inputPlaceholder}
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -1002,7 +1420,7 @@ export default function ChatPage() {
               disabled={loading}
               className="bg-yellow-400 text-black font-bold px-6 rounded-lg hover:bg-yellow-300 flex-shrink-0"
               style={{ height: '44px' }}
-            >Send</button>
+            >{ui.sendButton}</button>
           </div>
         </div>
       )}

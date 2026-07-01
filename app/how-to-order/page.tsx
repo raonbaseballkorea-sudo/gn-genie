@@ -30,7 +30,7 @@ const content: Record<string, {
       { title: 'Step 1 — Enter Your Email', desc: 'No password needed. Just your email to start and receive your order summary.' },
       { title: 'Step 2 — Chat with Genie', desc: 'Our AI consultant Genie asks you 10 simple questions. Answer them and your order is set.' },
       { title: 'Step 3 — Confirm Your Order', desc: 'Review your order sheet and pay the flat $169 fee. No hidden charges.' },
-      { title: 'Step 4 — Delivered in 30 Days', desc: 'Your custom glove ships from our Xiamen factory directly to your door.' },
+      { title: 'Step 4 — Delivered in 30 Days', desc: 'Your custom glove ships directly to your door via express courier from our factory.' },
     ],
     questions: [
       { num: 1, text: 'Baseball or softball?' },
@@ -54,7 +54,7 @@ const content: Record<string, {
       { title: '1단계 — 이메일 입력', desc: '비밀번호 없이 이메일만 입력하면 시작됩니다. 주문 확인서도 이메일로 발송됩니다.' },
       { title: '2단계 — Genie와 채팅', desc: 'AI 컨설턴트 Genie가 10가지 질문을 드립니다. 답변하면 주문이 완성됩니다.' },
       { title: '3단계 — 주문 확인 및 결제', desc: '주문서를 확인하고 $169 정액 결제를 진행하세요. 추가 비용 없습니다.' },
-      { title: '4단계 — 30일 내 배송', desc: '중국 샤먼 공장에서 직접 고객님 주소로 발송됩니다.' },
+      { title: '4단계 — 30일 내 배송', desc: '공장에서 특송으로 고객님 주소로 바로 발송됩니다.' },
     ],
     questions: [
       { num: 1, text: '야구용인가요, 소프트볼용인가요?' },
@@ -126,7 +126,7 @@ const content: Record<string, {
       { title: 'Paso 1 — Ingresa tu email', desc: 'Sin contraseña. Solo tu email para empezar y recibir el resumen de tu pedido.' },
       { title: 'Paso 2 — Chatea con Genie', desc: 'Nuestro consultor AI Genie te hace 10 preguntas simples. Respóndelas y tu pedido está listo.' },
       { title: 'Paso 3 — Confirma y paga', desc: 'Revisa tu hoja de pedido y paga el precio fijo de $169. Sin cargos ocultos.' },
-      { title: 'Paso 4 — Entrega en 30 días', desc: 'Tu guante sale de nuestra fábrica en Xiamen directo a tu puerta.' },
+      { title: 'Paso 4 — Entrega en 30 días', desc: 'Tu guante sale directo a tu puerta por mensajería exprés desde nuestra fábrica.' },
     ],
     questions: [
       { num: 1, text: '¿Béisbol o softbol?' },
@@ -150,7 +150,7 @@ const content: Record<string, {
       { title: 'Passo 1 — Digite seu email', desc: 'Sem senha. Só seu email para começar e receber o resumo do pedido.' },
       { title: 'Passo 2 — Converse com o Genie', desc: 'Nosso consultor AI Genie faz 10 perguntas simples. Responda e seu pedido estará pronto.' },
       { title: 'Passo 3 — Confirme e pague', desc: 'Revise sua ficha de pedido e pague o valor fixo de $169. Sem taxas ocultas.' },
-      { title: 'Passo 4 — Entrega em 30 dias', desc: 'Sua luva sai da nossa fábrica em Xiamen direto para sua porta.' },
+      { title: 'Passo 4 — Entrega em 30 dias', desc: 'Sua luva sai direto para sua porta via courier expresso da nossa fábrica.' },
     ],
     questions: [
       { num: 1, text: 'Beisebol ou softbol?' },
@@ -174,7 +174,7 @@ const content: Record<string, {
       { title: 'Paso 1 — Ingresa tu email', desc: 'Sin contraseña. Solo tu email para comenzar y recibir el resumen de tu pedido.' },
       { title: 'Paso 2 — Chatea con Genie', desc: 'Nuestro consultor AI Genie te hace 10 preguntas sencillas. Respóndelas y tu pedido queda listo.' },
       { title: 'Paso 3 — Confirma y paga', desc: 'Revisa tu orden y paga el precio fijo de $169. Sin cobros adicionales.' },
-      { title: 'Paso 4 — Entrega en 30 días', desc: 'Tu guante sale de nuestra fábrica en Xiamen directo a tu casa.' },
+      { title: 'Paso 4 — Entrega en 30 días', desc: 'Tu guante sale directo a tu casa por mensajería exprés desde nuestra fábrica.' },
     ],
     questions: [
       { num: 1, text: '¿Béisbol o softbol?' },

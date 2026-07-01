@@ -8,6 +8,9 @@ import { rateLimit, getClientIp } from '@/lib/rateLimit';
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
 const SMTP_USER = 'raonbaseball@30dayglove.com';
 
+// 중국어 고객 결제 메일에 추가로 넣을 위챗페이 QR코드 — 이 경로에 이미지 파일을 넣으면 자동으로 메일에 포함됨 (없으면 그냥 생략)
+const WECHAT_QR_PATH = path.join(process.cwd(), 'public', 'payment', 'wechat-qr.png');
+
 const transporter = nodemailer.createTransport({
   host: 'smtp.hostinger.com',
   port: 465,
@@ -148,6 +151,23 @@ export async function POST(req: NextRequest) {
     ];
 
     if (customerEmail) {
+      // 중국어 고객에게는 Stripe 카드결제 외에 위챗페이 QR코드도 함께 보내 둘 중 하나를 고르게 함
+      const hasWechatQr = orderData.customer_language === 'zh' && fs.existsSync(WECHAT_QR_PATH);
+      const wechatQrSection = hasWechatQr ? `
+              <p style="color:#aaa;font-size:12px;text-align:center;margin:24px 0 8px;">— 或 —</p>
+              <div style="text-align:center;margin-bottom:24px;">
+                <p style="color:#555;font-size:13px;margin-bottom:10px;">使用微信支付扫码付款：</p>
+                <img src="cid:wechat-qr" alt="WeChat Pay QR" style="width:180px;height:180px;" />
+              </div>` : '';
+      const customerAttachments = [...(orderImageBase64 ? [attachments[0]] : [])];
+      if (hasWechatQr) {
+        customerAttachments.push({
+          filename: 'wechat-qr.png',
+          content: fs.readFileSync(WECHAT_QR_PATH),
+          cid: 'wechat-qr',
+        });
+      }
+
       emailJobs.push(
         transporter.sendMail({
           from: `GN Glove <${SMTP_USER}>`,
@@ -164,7 +184,7 @@ export async function POST(req: NextRequest) {
                    style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
                   COMPLETE PAYMENT — $169 →
                 </a>
-              </div>
+              </div>${wechatQrSection}
               <p style="color:#aaa;font-size:11px;text-align:center;">
                 Our craftsmen will begin production within 24 hours of payment.<br/>
                 Your glove will arrive at your door within 30 days.
@@ -173,7 +193,7 @@ export async function POST(req: NextRequest) {
               <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
             </div>
           `,
-          attachments: orderImageBase64 ? [attachments[0]] : undefined,
+          attachments: customerAttachments.length > 0 ? customerAttachments : undefined,
         })
       );
     } else {
