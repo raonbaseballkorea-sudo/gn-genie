@@ -36,6 +36,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# customer order data (PII) — lives on the server's disk only, never in git
+/orders/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
