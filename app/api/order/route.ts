@@ -4,6 +4,7 @@ import * as path from 'path';
 import * as XLSX from 'xlsx';
 import nodemailer from 'nodemailer';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { getPaidOrdersBetween, isoWeekStart } from '@/lib/orders';
 
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
 const SMTP_USER = 'raonbaseball@30dayglove.com';
@@ -211,48 +212,66 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// 주간 결제완료 정산 — 크론이 매주 호출. 결제완료(paid) 주문만 엑셀로 만들어 Robin에게 메일 발송.
+// 보호: ?token=CRON_SECRET 일치해야 실행 (고객 PII가 담긴 메일이 아무나 호출로 나가지 않도록)
 export async function GET(req: NextRequest) {
   try {
-    const weekKey = getISOWeekKey(new Date());
-    const filePath = path.join(process.cwd(), 'orders', `${weekKey}.json`);
-
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({ error: 'No orders this week' }, { status: 404 });
+    const secret = process.env.CRON_SECRET;
+    if (!secret) {
+      console.error('CRON_SECRET not configured');
+      return NextResponse.json({ error: 'Server misconfigured' }, { status: 500 });
+    }
+    if (req.nextUrl.searchParams.get('token') !== secret) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const orders = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    // ?week=prev 이면 지난 주(막 끝난 주), 기본은 이번 주. 크론은 보통 주 초에 prev로 호출.
+    const thisWeekStart = isoWeekStart(new Date());
+    const usePrev = req.nextUrl.searchParams.get('week') === 'prev';
+    const start = usePrev ? new Date(thisWeekStart.getTime() - 7 * 86400000) : thisWeekStart;
+    const end = new Date(start.getTime() + 7 * 86400000);
+    const weekKey = getISOWeekKey(start);
 
-    const rows = orders.map((o: any) => ({
+    const paidOrders = getPaidOrdersBetween(start, end);
+
+    const rows = paidOrders.map((o) => ({
       'Order #': o.orderId,
-      'Date': o.orderDate,
+      'Order Date': o.orderDate,
+      'Paid At': o.paidAt,
       'Name': o.customer?.name,
       'Email': o.customer?.email,
       'Phone': o.customer?.phone,
       'Address': o.customer?.address,
-      'Sport': o.sport,
-      'Size': o.size,
-      'Position': o.position,
-      'Hand': o.hand,
+      // 스펙 4가지를 한 줄로 합쳐 송장 품명으로 사용
+      'Product': [o.sport, o.size, o.position, o.hand].filter(Boolean).join(' / '),
     }));
 
-    const wb = XLSX.utils.book_new();
-    const ws = XLSX.utils.json_to_sheet(rows);
-    XLSX.utils.book_append_sheet(wb, ws, weekKey);
-    const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    const attachments: any[] = [];
+    if (rows.length > 0) {
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, weekKey);
+      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+      attachments.push({
+        filename: `paid-orders-${weekKey}.xlsx`,
+        content: buffer,
+        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      });
+    }
 
+    // 0건이어도 발송 — 크론이 살아있음을 Robin이 확인할 수 있게
     await transporter.sendMail({
       from: `GN Glove <${SMTP_USER}>`,
       to: OWNER_EMAIL,
-      subject: `Weekly Orders — ${weekKey} (${orders.length} orders)`,
-      html: `<p>Weekly order summary attached. Total: <strong>${orders.length} orders</strong></p>`,
-      attachments: [{
-        filename: `orders-${weekKey}.xlsx`,
-        content: buffer,
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      }],
+      subject: `Weekly Paid Orders — ${weekKey} (${rows.length} paid)`,
+      html:
+        rows.length > 0
+          ? `<p>Paid orders for <strong>${weekKey}</strong> attached. Total: <strong>${rows.length} paid</strong>.</p>`
+          : `<p>No paid orders for <strong>${weekKey}</strong>.</p>`,
+      attachments,
     });
 
-    return NextResponse.json({ success: true, orders: orders.length });
+    return NextResponse.json({ success: true, week: weekKey, paid: rows.length });
 
   } catch (error) {
     console.error('Weekly export error:', error);

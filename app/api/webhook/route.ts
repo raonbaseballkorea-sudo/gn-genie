@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
+import { markOrderPaid } from '@/lib/orders';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
@@ -104,7 +105,7 @@ export async function POST(req: NextRequest) {
       ? `${resource.amount.currency_code || 'USD'} ${resource.amount.value}`
       : '$169.00';
     // NCP 고정 링크는 orderId를 실어보낼 수 없어 custom_id/invoice_id 가 대개 비어 있음 → 있으면 표시, 없으면 거래ID로 대체
-    const orderRef = resource.custom_id || resource.invoice_id || resource.id || '(no reference)';
+    let orderRef = resource.custom_id || resource.invoice_id || resource.id || '(no reference)';
     // 캡처 페이로드에 구매자 정보가 담겨오면 사용 (없을 수 있음)
     let payer = resource.payer || {};
     // 캡처에 구매자 이메일이 없으면 상위 주문을 조회해 이메일/이름을 확보
@@ -131,6 +132,22 @@ export async function POST(req: NextRequest) {
     const customerName =
       [payer.name?.given_name, payer.name?.surname].filter(Boolean).join(' ').trim() || 'Customer';
 
+    // 결제를 이메일로 주문과 매칭해 paid 표시 (주간 정산에서 결제완료 건만 집계됨)
+    let matchedOrder: ReturnType<typeof markOrderPaid> = null;
+    try {
+      matchedOrder = markOrderPaid(customerEmail, {
+        amountPaid,
+        paidAt: event.create_time || new Date().toISOString(),
+        captureId: resource.id,
+      });
+    } catch (err: any) {
+      console.error('markOrderPaid failed:', err?.message || err);
+    }
+    if (matchedOrder?.orderId) orderRef = matchedOrder.orderId;
+    const matchNote = matchedOrder
+      ? `✅ Matched to order ${matchedOrder.orderId} (marked paid).`
+      : '⚠️ No matching order found by email — check manually (buyer may have paid with a different email).';
+
     // Robin에게 결제 완료 알림 (결제된 주문만)
     await resend.emails.send({
       from: 'GN Glove <orders@30dayglove.com>',
@@ -144,6 +161,7 @@ export async function POST(req: NextRequest) {
           <p><strong>Email:</strong> ${customerEmail || '(not provided in webhook)'}</p>
           <p><strong>Amount:</strong> ${amountPaid}</p>
           <p><strong>Transaction ID:</strong> ${resource.id || '(unknown)'}</p>
+          <p style="color:#555;font-size:13px;">${matchNote}</p>
           <p style="color:#228b22;font-weight:bold;">✅ Production can begin now.</p>
           <p style="color:#888;font-size:12px;">Match this payment to the order sheet by customer name / email / amount.</p>
           <hr style="border:0.5px solid #eee;margin:16px 0;"/>
