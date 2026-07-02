@@ -125,8 +125,8 @@ export async function POST(req: NextRequest) {
       contentType: 'text/plain',
     });
 
-    const paymentLink = process.env.STRIPE_PAYMENT_LINK || '';
-    const paymentUrl = `${paymentLink}?client_reference_id=${orderId}&prefilled_email=${encodeURIComponent(customerEmail || '')}`;
+    // PayPal NCP 고정 결제 링크 — 모든 고객이 같은 URL 사용 (orderId/이메일 프리필 불가)
+    const paymentUrl = process.env.PAYPAL_PAYMENT_LINK || 'https://www.paypal.com/ncp/payment/7VVRZSPCERBR8';
 
     // Robin과 고객에게 동시에 발송 (순차 대기 대신 병렬로 보내 처리 시간 단축)
     devLog('[ORDER] Sending admin + customer emails in parallel...');
