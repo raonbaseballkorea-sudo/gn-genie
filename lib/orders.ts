@@ -88,11 +88,24 @@ export function getPaidOrdersBetween(start: Date, end: Date): OrderRecord[] {
   return result;
 }
 
-// 주어진 날짜가 속한 ISO 주의 월요일 00:00(UTC)
-export function isoWeekStart(date: Date): Date {
-  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
-  const day = d.getUTCDay() || 7; // 월=1 ... 일=7
-  d.setUTCDate(d.getUTCDate() - (day - 1));
-  d.setUTCHours(0, 0, 0, 0);
-  return d;
+const KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+
+// nowUtc가 속한 "한국시간(KST) ISO 주"의 시작/끝(실제 UTC 시각)과 주차 라벨을 반환.
+// 서버 시간대와 무관하게 KST 기준 월~일 주를 잡으므로, 크론이 월요일 KST에 돌기만 하면 항상 정확한 주가 집계됨.
+export function kstIsoWeek(nowUtc: Date): { start: Date; end: Date; key: string } {
+  // KST 벽시계를 UTC 필드로 표현
+  const k = new Date(nowUtc.getTime() + KST_OFFSET_MS);
+  const day = k.getUTCDay() || 7; // 월=1 ... 일=7
+  // 이 주의 월요일 00:00 (KST 벽시계)
+  const kMonday = new Date(Date.UTC(k.getUTCFullYear(), k.getUTCMonth(), k.getUTCDate()));
+  kMonday.setUTCDate(kMonday.getUTCDate() - (day - 1));
+  // ISO 주차 라벨은 목요일 기준
+  const kThu = new Date(kMonday.getTime() + 3 * 86400000);
+  const yearStart = new Date(Date.UTC(kThu.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((kThu.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  const key = `${kThu.getUTCFullYear()}-W${String(week).padStart(2, '0')}`;
+  // KST 벽시계 월요일을 실제 UTC 시각으로 환산
+  const start = new Date(kMonday.getTime() - KST_OFFSET_MS);
+  const end = new Date(start.getTime() + 7 * 86400000);
+  return { start, end, key };
 }

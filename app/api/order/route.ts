@@ -4,7 +4,7 @@ import * as path from 'path';
 import * as XLSX from 'xlsx';
 import nodemailer from 'nodemailer';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
-import { getPaidOrdersBetween, isoWeekStart } from '@/lib/orders';
+import { getPaidOrdersBetween, kstIsoWeek } from '@/lib/orders';
 
 const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
 const SMTP_USER = 'raonbaseball@30dayglove.com';
@@ -225,12 +225,12 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ?week=prev 이면 지난 주(막 끝난 주), 기본은 이번 주. 크론은 보통 주 초에 prev로 호출.
-    const thisWeekStart = isoWeekStart(new Date());
+    // ?week=prev 이면 지난 주(막 끝난 주), 기본은 이번 주. 크론은 월요일 아침에 prev로 호출. (KST 기준)
     const usePrev = req.nextUrl.searchParams.get('week') === 'prev';
-    const start = usePrev ? new Date(thisWeekStart.getTime() - 7 * 86400000) : thisWeekStart;
-    const end = new Date(start.getTime() + 7 * 86400000);
-    const weekKey = getISOWeekKey(start);
+    const current = kstIsoWeek(new Date());
+    // 지난 주의 한 시점(현재 주 시작 3일 전)으로 지난 주 범위를 구함
+    const target = usePrev ? kstIsoWeek(new Date(current.start.getTime() - 3 * 86400000)) : current;
+    const { start, end, key: weekKey } = target;
 
     const paidOrders = getPaidOrdersBetween(start, end);
 
