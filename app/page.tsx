@@ -364,10 +364,27 @@ export default function ChatPage() {
   }, [input]);
 
   const sendCode = async () => {
-    if (email) {
-      sessionStorage.setItem('gnEmail', email);
-      emailRef.current = email;
-      resolvePostLoginStep();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      alert('Please enter a valid email address.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setStep('verify');
+      } else {
+        alert(data.error);
+      }
+    } catch {
+      alert('Failed to send code. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
