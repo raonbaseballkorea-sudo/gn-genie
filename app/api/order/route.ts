@@ -1,26 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as XLSX from 'xlsx';
-import nodemailer from 'nodemailer';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
-import { getPaidOrdersBetween, kstIsoWeek } from '@/lib/orders';
-
-const OWNER_EMAIL = 'raonbaseballkorea@gmail.com';
-const SMTP_USER = 'raonbaseball@30dayglove.com';
+import { transporter, SMTP_USER, OWNER_EMAIL } from '@/lib/mailer';
+import { runWeeklySettlement } from '@/lib/weeklySettlement';
 
 // 중국어 고객 결제 메일에 추가로 넣을 위챗페이 QR코드 — 이 경로에 이미지 파일을 넣으면 자동으로 메일에 포함됨 (없으면 그냥 생략)
 const WECHAT_QR_PATH = path.join(process.cwd(), 'public', 'payment', 'wechat-qr.png');
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.hostinger.com',
-  port: 465,
-  secure: true,
-  auth: {
-    user: SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
 
 function devLog(...args: unknown[]) {
   if (process.env.NODE_ENV !== 'production') console.log(...args);
@@ -201,8 +187,14 @@ export async function POST(req: NextRequest) {
       devLog('[ORDER] WARNING: No customer email — skipping.');
     }
 
-    await Promise.all(emailJobs);
-    devLog('[ORDER] Emails sent.');
+    // 이메일 발송은 응답을 막지 않도록 백그라운드로 처리한다. SMTP로 이미지 첨부를 업로드하는 데
+    // 이미지 크기에 비례해 20~80초가 걸려, CDN/게이트웨이 타임아웃 때문에 서버는 성공해도 클라이언트만
+    // 연결이 끊겨 주문이 실패하던 문제를 해결. 주문 자체는 위 saveOrder로 이미 디스크에 저장됐으므로
+    // 이메일은 best-effort로 뒤에서 보낸다. Hostinger Horizons는 상시 실행 Node 서버라 응답 반환 후에도
+    // 이 Promise가 끝까지 실행됨.
+    Promise.all(emailJobs)
+      .then(() => devLog('[ORDER] Emails sent.'))
+      .catch((e: any) => console.error('[ORDER] Background email failed for', orderId, e?.message || e));
 
     return NextResponse.json({ success: true, orderId });
 
@@ -212,7 +204,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// 주간 결제완료 정산 — 크론이 매주 호출. 결제완료(paid) 주문만 엑셀로 만들어 Robin에게 메일 발송.
+// 주간 결제완료 정산의 수동/백업 트리거. 실제 정기 실행은 인앱 스케줄러(instrumentation.ts)가
+// 매주 월요일 09:00 KST에 runWeeklySettlement()를 직접 호출한다. 이 엔드포인트는 수동 재실행용.
 // 보호: ?token=CRON_SECRET 일치해야 실행 (고객 PII가 담긴 메일이 아무나 호출로 나가지 않도록)
 export async function GET(req: NextRequest) {
   try {
@@ -225,53 +218,10 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // ?week=prev 이면 지난 주(막 끝난 주), 기본은 이번 주. 크론은 월요일 아침에 prev로 호출. (KST 기준)
+    // ?week=prev 이면 지난 주(막 끝난 주), 기본은 이번 주. 스케줄러는 월요일 09:00 KST에 prev로 실행. (KST 기준)
     const usePrev = req.nextUrl.searchParams.get('week') === 'prev';
-    const current = kstIsoWeek(new Date());
-    // 지난 주의 한 시점(현재 주 시작 3일 전)으로 지난 주 범위를 구함
-    const target = usePrev ? kstIsoWeek(new Date(current.start.getTime() - 3 * 86400000)) : current;
-    const { start, end, key: weekKey } = target;
-
-    const paidOrders = getPaidOrdersBetween(start, end);
-
-    const rows = paidOrders.map((o) => ({
-      'Order #': o.orderId,
-      'Order Date': o.orderDate,
-      'Paid At': o.paidAt,
-      'Name': o.customer?.name,
-      'Email': o.customer?.email,
-      'Phone': o.customer?.phone,
-      'Address': o.customer?.address,
-      // 스펙 4가지를 한 줄로 합쳐 송장 품명으로 사용
-      'Product': [o.sport, o.size, o.position, o.hand].filter(Boolean).join(' / '),
-    }));
-
-    const attachments: any[] = [];
-    if (rows.length > 0) {
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(rows);
-      XLSX.utils.book_append_sheet(wb, ws, weekKey);
-      const buffer = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
-      attachments.push({
-        filename: `paid-orders-${weekKey}.xlsx`,
-        content: buffer,
-        contentType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-    }
-
-    // 0건이어도 발송 — 크론이 살아있음을 Robin이 확인할 수 있게
-    await transporter.sendMail({
-      from: `GN Glove <${SMTP_USER}>`,
-      to: OWNER_EMAIL,
-      subject: `Weekly Paid Orders — ${weekKey} (${rows.length} paid)`,
-      html:
-        rows.length > 0
-          ? `<p>Paid orders for <strong>${weekKey}</strong> attached. Total: <strong>${rows.length} paid</strong>.</p>`
-          : `<p>No paid orders for <strong>${weekKey}</strong>.</p>`,
-      attachments,
-    });
-
-    return NextResponse.json({ success: true, week: weekKey, paid: rows.length });
+    const result = await runWeeklySettlement(usePrev);
+    return NextResponse.json({ success: true, ...result });
 
   } catch (error) {
     console.error('Weekly export error:', error);

@@ -675,7 +675,8 @@ export default function ChatPage() {
         windowHeight: container.scrollHeight,
       });
       if (btn) btn.style.display = '';
-      return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+      // 첨부 이메일 용량을 줄이려 품질을 낮춤(0.92→0.75). 주문서/작업지시서 가독성은 유지되는 수준.
+      return canvas.toDataURL('image/jpeg', 0.75).split(',')[1];
     } catch (e) {
       console.error('Capture failed:', e);
       return null;
