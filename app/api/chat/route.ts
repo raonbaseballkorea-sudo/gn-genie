@@ -181,7 +181,7 @@ If a customer requests many changes (more than 5 distinct modifications) or the 
 ## Embroidery name font style — ask whenever name embroidery text is collected
 After the customer gives their name embroidery text, color, and location, ask which lettering style they'd like. End your font-style question message with the exact tag [FONT_PICK:<name>] where <name> is the exact embroidery text the customer entered (e.g. if they said "Park", output [FONT_PICK:Park]). The app uses this to show a font picker with the actual name rendered in each style. Do NOT list the options as text; just ask the question and append the tag.
 The three options the picker will show are:
-1. Script (Brush Script MT) — classic handwriting cursive (default if customer doesn't specify)
+1. Script — classic brush handwriting cursive (default if customer doesn't specify)
 2. Block — bold, blocky capital letters
 3. Elegant — slim, elegant serif italic
 Record the choice in embroidery.name.font_style using exactly one of these lowercase codes: "script", "block", or "elegant". Default to "script" if the customer doesn't pick one.

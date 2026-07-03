@@ -739,7 +739,7 @@ export default function ChatPage() {
   // 언어별 폰트 정의 (OrderSheet.tsx의 EMBROIDERY_FONTS와 동기화)
   const FONT_OPTIONS: Record<string, { label: string; fontFamily: string; fontStyle?: string; fontWeight?: number }[]> = {
     latin: [
-      { label: 'Script', fontFamily: "'Brush Script MT', cursive", fontStyle: 'italic' },
+      { label: 'Script', fontFamily: "'Yellowtail', cursive" },
       { label: 'Block',  fontFamily: "'Arial Black', Impact, sans-serif", fontWeight: 900 },
       { label: 'Elegant', fontFamily: "'Times New Roman', Georgia, serif", fontStyle: 'italic' },
     ],
@@ -779,7 +779,7 @@ export default function ChatPage() {
   };
 
   const sendFontChoice = (choice: 'script' | 'block' | 'elegant') => {
-    const labelMap = { script: 'Script (Brush Script MT)', block: 'Block', elegant: 'Elegant' };
+    const labelMap = { script: 'Script', block: 'Block', elegant: 'Elegant' };
     sendMessage(labelMap[choice]);
   };
 

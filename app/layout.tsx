@@ -32,7 +32,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Black+Han+Sans&family=Nanum+Myeongjo:wght@400;700&family=Yuji+Syuku&family=Noto+Sans+JP:wght@400;900&family=Noto+Serif+JP:wght@400;700&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;900&family=Noto+Serif+SC:wght@400;700&family=Mali:wght@400;700&family=Kanit:wght@400;700&family=Charm:wght@400;700&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Black+Han+Sans&family=Nanum+Myeongjo:wght@400;700&family=Yuji+Syuku&family=Noto+Sans+JP:wght@400;900&family=Noto+Serif+JP:wght@400;700&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;900&family=Noto+Serif+SC:wght@400;700&family=Mali:wght@400;700&family=Kanit:wght@400;700&family=Charm:wght@400;700&family=Yellowtail&display=swap"
           rel="stylesheet"
         />
       </head>

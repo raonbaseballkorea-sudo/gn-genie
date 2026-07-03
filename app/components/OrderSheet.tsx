@@ -248,7 +248,7 @@ function detectEmbroideryScript(text: string): EmbroideryScript {
 
 const EMBROIDERY_FONTS: Record<EmbroideryScript, Record<EmbroideryStyle, { fontFamily: string; fontWeight?: number; fontStyle?: string }>> = {
   latin: {
-    script: { fontFamily: "'Brush Script MT', cursive", fontStyle: 'italic' },
+    script: { fontFamily: "'Yellowtail', cursive" },
     block: { fontFamily: "'Arial Black', Impact, sans-serif", fontWeight: 900 },
     elegant: { fontFamily: "'Times New Roman', Georgia, serif", fontStyle: 'italic' },
   },
