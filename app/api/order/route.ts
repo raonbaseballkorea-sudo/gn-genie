@@ -12,6 +12,116 @@ function devLog(...args: unknown[]) {
   if (process.env.NODE_ENV !== 'production') console.log(...args);
 }
 
+// 고객 결제 안내 메일 문구 — OrderSheet.tsx의 LABELS와 동일한 12개 언어 세트를 사용
+type EmailLabels = {
+  subject: string; greeting: string; received: string; review: string;
+  button: string; craftsmen: string; arrival: string;
+  wechatOr: string; wechatScan: string;
+};
+
+const EMAIL_LABELS: { [lang: string]: EmailLabels } = {
+  en: {
+    subject: 'Your GN Glove Order — {orderId}', greeting: 'Hi',
+    received: 'Your order <strong style="color:#b8922a;">{orderId}</strong> has been received.',
+    review: 'Please review your order sheet (attached) and complete your payment to begin production.',
+    button: 'COMPLETE PAYMENT — $169', craftsmen: 'Our craftsmen will begin production within 24 hours of payment.',
+    arrival: 'Your glove will arrive at your door within 30 days.',
+    wechatOr: '— or —', wechatScan: 'Scan to pay with WeChat Pay:',
+  },
+  ko: {
+    subject: 'GN 글러브 주문 확인 — {orderId}', greeting: '안녕하세요,',
+    received: '주문하신 <strong style="color:#b8922a;">{orderId}</strong> 건이 접수되었습니다.',
+    review: '첨부된 주문서를 확인하시고 결제를 완료해 주시면 제작이 시작됩니다.',
+    button: '결제 완료하기 — $169', craftsmen: '결제가 완료되면 24시간 이내에 장인이 제작을 시작합니다.',
+    arrival: '글러브는 30일 이내에 문 앞으로 배송됩니다.',
+    wechatOr: '— 또는 —', wechatScan: '위챗페이로 결제하려면 스캔하세요:',
+  },
+  zh: {
+    subject: '您的 GN 手套订单 — {orderId}', greeting: '您好，',
+    received: '您的订单 <strong style="color:#b8922a;">{orderId}</strong> 已收到。',
+    review: '请查看附件中的订单表，并完成付款以开始生产。',
+    button: '完成付款 — $169', craftsmen: '付款完成后，我们的工匠将在24小时内开始制作。',
+    arrival: '您的手套将在30天内送达。',
+    wechatOr: '— 或 —', wechatScan: '使用微信支付扫码付款：',
+  },
+  ja: {
+    subject: 'GNグラブのご注文 — {orderId}', greeting: 'こんにちは、',
+    received: 'ご注文 <strong style="color:#b8922a;">{orderId}</strong> を受け付けました。',
+    review: '添付の注文書をご確認の上、お支払いを完了してください。お支払い完了後、製作を開始します。',
+    button: '支払いを完了する — $169', craftsmen: 'お支払い完了後24時間以内に職人が製作を開始します。',
+    arrival: 'グラブは30日以内にお届けします。',
+    wechatOr: '— または —', wechatScan: 'WeChat Payでお支払いの場合はスキャンしてください：',
+  },
+  es: {
+    subject: 'Tu Pedido GN Glove — {orderId}', greeting: 'Hola,',
+    received: 'Tu pedido <strong style="color:#b8922a;">{orderId}</strong> ha sido recibido.',
+    review: 'Por favor revisa tu hoja de pedido (adjunta) y completa el pago para comenzar la producción.',
+    button: 'Completar Pago — $169', craftsmen: 'Nuestros artesanos comenzarán la producción dentro de las 24 horas posteriores al pago.',
+    arrival: 'Tu guante llegará a tu puerta en un plazo de 30 días.',
+    wechatOr: '— o —', wechatScan: 'Escanea para pagar con WeChat Pay:',
+  },
+  fr: {
+    subject: 'Votre Commande GN Glove — {orderId}', greeting: 'Bonjour,',
+    received: 'Votre commande <strong style="color:#b8922a;">{orderId}</strong> a été reçue.',
+    review: 'Veuillez vérifier votre bon de commande (ci-joint) et finaliser le paiement pour lancer la production.',
+    button: 'Finaliser le Paiement — $169', craftsmen: 'Nos artisans commenceront la production dans les 24 heures suivant le paiement.',
+    arrival: 'Votre gant arrivera chez vous sous 30 jours.',
+    wechatOr: '— ou —', wechatScan: 'Scannez pour payer avec WeChat Pay :',
+  },
+  de: {
+    subject: 'Ihre GN Glove Bestellung — {orderId}', greeting: 'Hallo,',
+    received: 'Ihre Bestellung <strong style="color:#b8922a;">{orderId}</strong> ist eingegangen.',
+    review: 'Bitte überprüfen Sie Ihr Bestellblatt (im Anhang) und schließen Sie die Zahlung ab, um die Produktion zu starten.',
+    button: 'Zahlung Abschließen — $169', craftsmen: 'Unsere Handwerker beginnen die Produktion innerhalb von 24 Stunden nach Zahlungseingang.',
+    arrival: 'Ihr Handschuh wird innerhalb von 30 Tagen geliefert.',
+    wechatOr: '— oder —', wechatScan: 'Scannen Sie, um mit WeChat Pay zu bezahlen:',
+  },
+  it: {
+    subject: 'Il tuo Ordine GN Glove — {orderId}', greeting: 'Ciao,',
+    received: 'Il tuo ordine <strong style="color:#b8922a;">{orderId}</strong> è stato ricevuto.',
+    review: 'Controlla il foglio ordine (allegato) e completa il pagamento per iniziare la produzione.',
+    button: 'Completa il Pagamento — $169', craftsmen: 'I nostri artigiani inizieranno la produzione entro 24 ore dal pagamento.',
+    arrival: 'Il tuo guanto arriverà a casa tua entro 30 giorni.',
+    wechatOr: '— oppure —', wechatScan: 'Scansiona per pagare con WeChat Pay:',
+  },
+  nl: {
+    subject: 'Je GN Glove Bestelling — {orderId}', greeting: 'Hallo,',
+    received: 'Je bestelling <strong style="color:#b8922a;">{orderId}</strong> is ontvangen.',
+    review: 'Bekijk je bestelformulier (bijgevoegd) en rond de betaling af om de productie te starten.',
+    button: 'Betaling Voltooien — $169', craftsmen: 'Onze vakmensen starten de productie binnen 24 uur na betaling.',
+    arrival: 'Je handschoen wordt binnen 30 dagen bij je thuisbezorgd.',
+    wechatOr: '— of —', wechatScan: 'Scan om te betalen met WeChat Pay:',
+  },
+  th: {
+    subject: 'คำสั่งซื้อ GN Glove ของคุณ — {orderId}', greeting: 'สวัสดีค่ะ/ครับ,',
+    received: 'เราได้รับคำสั่งซื้อของคุณ <strong style="color:#b8922a;">{orderId}</strong> แล้ว',
+    review: 'กรุณาตรวจสอบใบสั่งซื้อ (แนบมาพร้อมนี้) และชำระเงินให้เสร็จสิ้นเพื่อเริ่มการผลิต',
+    button: 'ชำระเงินให้เสร็จสิ้น — $169', craftsmen: 'ช่างฝีมือของเราจะเริ่มการผลิตภายใน 24 ชั่วโมงหลังจากชำระเงิน',
+    arrival: 'ถุงมือของคุณจะถูกจัดส่งถึงหน้าประตูภายใน 30 วัน',
+    wechatOr: '— หรือ —', wechatScan: 'สแกนเพื่อชำระเงินด้วย WeChat Pay:',
+  },
+  tl: {
+    subject: 'Ang Iyong GN Glove Order — {orderId}', greeting: 'Kamusta,',
+    received: 'Natanggap na ang iyong order na <strong style="color:#b8922a;">{orderId}</strong>.',
+    review: 'Pakisuri ang iyong order sheet (nakalakip) at kumpletuhin ang bayad para simulan ang produksyon.',
+    button: 'Kumpletuhin ang Bayad — $169', craftsmen: 'Sisimulan ng aming mga manggagawa ang produksyon sa loob ng 24 oras matapos ang bayad.',
+    arrival: 'Darating ang iyong guwantes sa iyong pintuan sa loob ng 30 araw.',
+    wechatOr: '— o —', wechatScan: 'I-scan para magbayad gamit ang WeChat Pay:',
+  },
+  pt: {
+    subject: 'Seu Pedido GN Glove — {orderId}', greeting: 'Olá,',
+    received: 'Seu pedido <strong style="color:#b8922a;">{orderId}</strong> foi recebido.',
+    review: 'Por favor, revise sua folha de pedido (anexa) e conclua o pagamento para iniciar a produção.',
+    button: 'Concluir Pagamento — $169', craftsmen: 'Nossos artesãos iniciarão a produção dentro de 24 horas após o pagamento.',
+    arrival: 'Sua luva chegará à sua porta em até 30 dias.',
+    wechatOr: '— ou —', wechatScan: 'Escaneie para pagar com WeChat Pay:',
+  },
+};
+
+function getEmailLabels(lang?: string): EmailLabels {
+  return EMAIL_LABELS[(lang || 'en').toLowerCase()] || EMAIL_LABELS.en;
+}
+
 function isValidEmail(email: unknown): email is string {
   return typeof email === 'string' && email.length <= 255 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -140,12 +250,6 @@ export async function POST(req: NextRequest) {
     if (customerEmail) {
       // 중국어 고객에게는 Stripe 카드결제 외에 위챗페이 QR코드도 함께 보내 둘 중 하나를 고르게 함
       const hasWechatQr = orderData.customer_language === 'zh' && fs.existsSync(WECHAT_QR_PATH);
-      const wechatQrSection = hasWechatQr ? `
-              <p style="color:#aaa;font-size:12px;text-align:center;margin:24px 0 8px;">— 或 —</p>
-              <div style="text-align:center;margin-bottom:24px;">
-                <p style="color:#555;font-size:13px;margin-bottom:10px;">使用微信支付扫码付款：</p>
-                <img src="cid:wechat-qr" alt="WeChat Pay QR" style="width:180px;height:180px;" />
-              </div>` : '';
       const customerAttachments = [...(orderImageBase64 ? [attachments[0]] : [])];
       if (hasWechatQr) {
         customerAttachments.push({
@@ -155,26 +259,34 @@ export async function POST(req: NextRequest) {
         });
       }
 
+      const t = getEmailLabels(orderData.customer_language);
+      const wechatOrSection = hasWechatQr ? `
+              <p style="color:#aaa;font-size:12px;text-align:center;margin:24px 0 8px;">${t.wechatOr}</p>
+              <div style="text-align:center;margin-bottom:24px;">
+                <p style="color:#555;font-size:13px;margin-bottom:10px;">${t.wechatScan}</p>
+                <img src="cid:wechat-qr" alt="WeChat Pay QR" style="width:180px;height:180px;" />
+              </div>` : '';
+
       emailJobs.push(
         transporter.sendMail({
           from: `GN Glove <${SMTP_USER}>`,
           to: customerEmail,
-          subject: `Your GN Glove Order — ${orderId}`,
+          subject: t.subject.replace('{orderId}', orderId),
           html: `
             <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;">
               <h2 style="color:#111;letter-spacing:2px;">GN GLOVE</h2>
-              <p style="color:#555;">Hi <strong>${orderData.customer?.name}</strong>,</p>
-              <p style="color:#555;">Your order <strong style="color:#b8922a;">${orderId}</strong> has been received.</p>
-              <p style="color:#555;">Please review your order sheet (attached) and complete your payment to begin production.</p>
+              <p style="color:#555;">${t.greeting} <strong>${orderData.customer?.name}</strong>,</p>
+              <p style="color:#555;">${t.received.replace('{orderId}', orderId)}</p>
+              <p style="color:#555;">${t.review}</p>
               <div style="text-align:center;margin:32px 0;">
                 <a href="${paymentUrl}"
-                   style="display:inline-block;background:#111;color:#f0c040;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:6px;letter-spacing:2px;">
-                  COMPLETE PAYMENT — $169 →
+                   style="display:inline-block;background:linear-gradient(135deg,#3a3f4d,#232733);color:#f0c86a;padding:16px 48px;font-weight:bold;font-size:15px;text-decoration:none;border-radius:14px;letter-spacing:1.5px;box-shadow:0 6px 16px rgba(0,0,0,0.18);">
+                  ${t.button} →
                 </a>
-              </div>${wechatQrSection}
+              </div>${wechatOrSection}
               <p style="color:#aaa;font-size:11px;text-align:center;">
-                Our craftsmen will begin production within 24 hours of payment.<br/>
-                Your glove will arrive at your door within 30 days.
+                ${t.craftsmen}<br/>
+                ${t.arrival}
               </p>
               <hr style="border:0.5px solid #eee;margin:20px 0;"/>
               <p style="font-size:10px;color:#ccc;text-align:center;letter-spacing:1px;">GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com</p>
