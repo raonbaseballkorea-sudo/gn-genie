@@ -27,15 +27,8 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <head>
-        {/* 이름 자수 스타일 선택지(필기체/블록체/우아한체)에 쓰이는 언어별 폰트 */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Black+Han+Sans&family=Nanum+Myeongjo:wght@400;700&family=Yuji+Syuku&family=Noto+Sans+JP:wght@400;900&family=Noto+Serif+JP:wght@400;700&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;900&family=Noto+Serif+SC:wght@400;700&family=Mali:wght@400;700&family=Kanit:wght@400;700&family=Charm:wght@400;700&family=Playball&family=Fugaz+One&family=Racing+Sans+One&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+      {/* 자수 이름 폰트는 /api/font-proxy를 통해 주문 텍스트별로 동적 로드된다 (OrderSheet.tsx 참고) —
+          Google 폰트 서버가 중국에서 막혀 있어 고정 <link>로는 로드가 실패할 수 있기 때문 */}
       <body className="min-h-full flex flex-col bg-gray-950 text-white">
         {children}
       </body>

@@ -246,37 +246,46 @@ function detectEmbroideryScript(text: string): EmbroideryScript {
   return 'latin';
 }
 
-const EMBROIDERY_FONTS: Record<EmbroideryScript, Record<EmbroideryStyle, { fontFamily: string; fontWeight?: number; fontStyle?: string }>> = {
+// googleFamily/googleWeight: /api/font-proxy/css에 넘길 Google Fonts 원본 이름·굵기
+// (fontFamily의 fallback 스택 문자열과 별개로, 정확한 쿼리용 값을 따로 보관)
+const EMBROIDERY_FONTS: Record<EmbroideryScript, Record<EmbroideryStyle, {
+  fontFamily: string; fontWeight?: number; fontStyle?: string; googleFamily: string; googleWeight?: number;
+}>> = {
   latin: {
-    script: { fontFamily: "'Playball', cursive" },
-    block: { fontFamily: "'Fugaz One', sans-serif" },
-    elegant: { fontFamily: "'Racing Sans One', sans-serif" },
+    script: { fontFamily: "'Playball', cursive", googleFamily: 'Playball' },
+    block: { fontFamily: "'Fugaz One', sans-serif", googleFamily: 'Fugaz One' },
+    elegant: { fontFamily: "'Racing Sans One', sans-serif", googleFamily: 'Racing Sans One' },
   },
   ko: {
-    script: { fontFamily: "'Nanum Pen Script', cursive" },
-    block: { fontFamily: "'Black Han Sans', sans-serif" },
-    elegant: { fontFamily: "'Nanum Myeongjo', serif", fontWeight: 700 },
+    script: { fontFamily: "'Nanum Pen Script', cursive", googleFamily: 'Nanum Pen Script' },
+    block: { fontFamily: "'Black Han Sans', sans-serif", googleFamily: 'Black Han Sans' },
+    elegant: { fontFamily: "'Nanum Myeongjo', serif", fontWeight: 700, googleFamily: 'Nanum Myeongjo', googleWeight: 700 },
   },
   ja: {
-    script: { fontFamily: "'Yuji Syuku', serif" },
-    block: { fontFamily: "'Noto Sans JP', sans-serif", fontWeight: 900 },
-    elegant: { fontFamily: "'Noto Serif JP', serif", fontWeight: 700 },
+    script: { fontFamily: "'Yuji Syuku', serif", googleFamily: 'Yuji Syuku' },
+    block: { fontFamily: "'Noto Sans JP', sans-serif", fontWeight: 900, googleFamily: 'Noto Sans JP', googleWeight: 900 },
+    elegant: { fontFamily: "'Noto Serif JP', serif", fontWeight: 700, googleFamily: 'Noto Serif JP', googleWeight: 700 },
   },
   zh: {
-    script: { fontFamily: "'Ma Shan Zheng', cursive" },
-    block: { fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 900 },
-    elegant: { fontFamily: "'Noto Serif SC', serif", fontWeight: 700 },
+    script: { fontFamily: "'Ma Shan Zheng', cursive", googleFamily: 'Ma Shan Zheng' },
+    block: { fontFamily: "'Noto Sans SC', sans-serif", fontWeight: 900, googleFamily: 'Noto Sans SC', googleWeight: 900 },
+    elegant: { fontFamily: "'Noto Serif SC', serif", fontWeight: 700, googleFamily: 'Noto Serif SC', googleWeight: 700 },
   },
   th: {
-    script: { fontFamily: "'Mali', cursive" },
-    block: { fontFamily: "'Kanit', sans-serif", fontWeight: 700 },
-    elegant: { fontFamily: "'Charm', serif", fontWeight: 700 },
+    script: { fontFamily: "'Mali', cursive", googleFamily: 'Mali' },
+    block: { fontFamily: "'Kanit', sans-serif", fontWeight: 700, googleFamily: 'Kanit', googleWeight: 700 },
+    elegant: { fontFamily: "'Charm', serif", fontWeight: 700, googleFamily: 'Charm', googleWeight: 700 },
   },
 };
 
 function getEmbroideryFont(text: string, style?: EmbroideryStyle) {
   const script = detectEmbroideryScript(text);
   return EMBROIDERY_FONTS[script][style || 'script'];
+}
+
+// 표시용 폰트 이름 추출: "'Playball', cursive" -> "Playball"
+function getFontDisplayName(fontFamily: string): string {
+  return fontFamily.split(',')[0].replace(/['"]/g, '').trim();
 }
 
 function GNLogo({ bgColor, logoColor, width = 100, height = 61 }: {
@@ -417,6 +426,24 @@ export default function OrderSheet({
   const posLabels = isFactory ? POSITION_LABELS_ZH : POSITION_LABELS;
   const pick = (val?: string, valZh?: string) => (isFactory && valZh ? valZh : (val || ''));
   const partLabel = (en: string) => (isFactory ? (STANDARD_PART_LABELS_ZH[en] || en) : en);
+
+  const nameText = orderData.embroidery?.name?.text;
+  const nameStyle = orderData.embroidery?.name?.font_style;
+  React.useEffect(() => {
+    if (!nameText) return;
+    const font = getEmbroideryFont(nameText, nameStyle);
+    const linkId = 'embroidery-font-proxy';
+    let link = document.getElementById(linkId) as HTMLLinkElement | null;
+    if (!link) {
+      link = document.createElement('link');
+      link.id = linkId;
+      link.rel = 'stylesheet';
+      document.head.appendChild(link);
+    }
+    const params = new URLSearchParams({ family: font.googleFamily, text: nameText });
+    if (font.googleWeight) params.set('weight', String(font.googleWeight));
+    link.href = `/api/font-proxy/css?${params.toString()}`;
+  }, [nameText, nameStyle]);
 
   // 공장용 스펙 값 중국어 변환 테이블
   const SPEC_ZH: Record<string, string> = {
@@ -827,6 +854,12 @@ export default function OrderSheet({
                 <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px', textTransform: 'capitalize' }}>
                   {pick(orderData.embroidery.name.color, orderData.embroidery.name.color_zh)} · #{orderData.embroidery.name.location} {posLabels[orderData.embroidery.name.location] || ''}
                 </div>
+                {isFactory && (
+                  // 사진 출력이 깨져도 정확한 서체로 자수할 수 있도록 폰트명을 텍스트로도 표기
+                  <div style={{ fontSize: '12px', color: '#c00', marginTop: '4px', fontWeight: 700 }}>
+                    字体: {getFontDisplayName(getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style).fontFamily)}
+                  </div>
+                )}
               </div>
             ) : (
               <div style={{ fontSize: '13px', color: '#ccc', fontStyle: 'italic', marginBottom: '8px' }}>{t.noNameEmb}</div>
