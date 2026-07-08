@@ -20,7 +20,7 @@ interface OrderData {
   };
   color_changes?: { part: string; color: string; hex?: string; swatch?: string; part_zh?: string; color_zh?: string }[];
   embroidery: {
-    name: { text: string; color: string; color_hex?: string; color_zh?: string; location: string; font_style?: 'script' | 'block' | 'elegant' };
+    name: { text: string; color: string; color_hex?: string; color_zh?: string; border?: string; border_hex?: string; border_zh?: string; location: string; font_style?: 'script' | 'block' | 'elegant' };
     flag: { country: string; location: string };
   };
   logo: {
@@ -84,7 +84,7 @@ type UILabels = {
   orderSheet: string; colorChanges: string; additionalRequests: string; allAsPerPhoto: string;
   logoPatch: string; bg: string; logo: string; gloveRefPhotos: string; noPhoto: string;
   fingerMap: string; gloveSpecs: string; sportLabel: string; handLabel: string; sizeLabel: string;
-  positionLabel: string; webLabel: string; embroidery: string; nameLabel: string; flagLabel: string;
+  positionLabel: string; webLabel: string; embroidery: string; nameLabel: string; flagLabel: string; borderLabel: string;
   noNameEmb: string; noFlagEmb: string; shipTo: string; messageToCraftsman: string; noMessage: string;
   confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string; addOns: string;
 };
@@ -96,7 +96,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Glove Reference Photos', noPhoto: 'No photo provided',
     fingerMap: 'Finger Add-ons & Embroidery Position Map', gloveSpecs: 'Glove Specs',
     sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Size', positionLabel: 'Position', webLabel: 'Web',
-    embroidery: 'Embroidery', nameLabel: 'Name', flagLabel: 'Flag',
+    embroidery: 'Embroidery', nameLabel: 'Name', flagLabel: 'Flag', borderLabel: 'Border',
     noNameEmb: 'No name embroidery', noFlagEmb: 'No flag embroidery', shipTo: 'Ship To',
     messageToCraftsman: '✍️ Message to the Craftsman', noMessage: 'No message',
     confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', pad: 'PAD', hood: 'HOOD', inner: 'Inner', addOns: 'Add-ons',
@@ -107,7 +107,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: '手套参考照片', noPhoto: '未提供照片',
     fingerMap: '手指附加件 & 刺绣位置图', gloveSpecs: '手套规格',
     sportLabel: '运动', handLabel: '惯用手', sizeLabel: '尺寸', positionLabel: '位置', webLabel: '网兜',
-    embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜',
+    embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜', borderLabel: '边框',
     noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
     messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
     confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '野手用指垫', hood: '投手用指套', inner: '内侧', addOns: '附加配件',
@@ -118,7 +118,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: '글러브 참고 사진', noPhoto: '제공된 사진 없음',
     fingerMap: '손가락 옵션 & 자수 위치도', gloveSpecs: '글러브 사양',
     sportLabel: '종목', handLabel: '사용손', sizeLabel: '사이즈', positionLabel: '포지션', webLabel: '웹',
-    embroidery: '자수', nameLabel: '이름', flagLabel: '국기',
+    embroidery: '자수', nameLabel: '이름', flagLabel: '국기', borderLabel: '테두리',
     noNameEmb: '이름 자수 없음', noFlagEmb: '국기 자수 없음', shipTo: '배송지',
     messageToCraftsman: '✍️ 장인에게 남기는 메시지', noMessage: '메시지 없음',
     confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', pad: '패드', hood: '후드', inner: '내측', addOns: '추가 옵션',
@@ -129,7 +129,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'グラブ参考写真', noPhoto: '写真未提供',
     fingerMap: '指オプション & 刺繍位置図', gloveSpecs: 'グラブ仕様',
     sportLabel: '種目', handLabel: '利き手', sizeLabel: 'サイズ', positionLabel: 'ポジション', webLabel: 'ウェブ',
-    embroidery: '刺繍', nameLabel: '名前', flagLabel: '国旗',
+    embroidery: '刺繍', nameLabel: '名前', flagLabel: '国旗', borderLabel: '縁取り',
     noNameEmb: '名前刺繍なし', noFlagEmb: '国旗刺繍なし', shipTo: '配送先',
     messageToCraftsman: '✍️ 職人へのメッセージ', noMessage: 'メッセージなし',
     confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', pad: 'パッド', hood: 'フード', inner: '内側', addOns: '追加オプション',
@@ -140,7 +140,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Fotos de Referencia', noPhoto: 'Sin foto',
     fingerMap: 'Complementos y Mapa de Bordado', gloveSpecs: 'Especificaciones',
     sportLabel: 'Deporte', handLabel: 'Mano', sizeLabel: 'Talla', positionLabel: 'Posición', webLabel: 'Red',
-    embroidery: 'Bordado', nameLabel: 'Nombre', flagLabel: 'Bandera',
+    embroidery: 'Bordado', nameLabel: 'Nombre', flagLabel: 'Bandera', borderLabel: 'Borde',
     noNameEmb: 'Sin bordado de nombre', noFlagEmb: 'Sin bordado de bandera', shipTo: 'Enviar a',
     messageToCraftsman: '✍️ Mensaje para el Artesano', noMessage: 'Sin mensaje',
     confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior', addOns: 'Complementos',
@@ -151,7 +151,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Photos de Référence', noPhoto: 'Aucune photo',
     fingerMap: 'Options Doigts & Plan de Broderie', gloveSpecs: 'Caractéristiques',
     sportLabel: 'Sport', handLabel: 'Main', sizeLabel: 'Taille', positionLabel: 'Poste', webLabel: 'Toile',
-    embroidery: 'Broderie', nameLabel: 'Nom', flagLabel: 'Drapeau',
+    embroidery: 'Broderie', nameLabel: 'Nom', flagLabel: 'Drapeau', borderLabel: 'Contour',
     noNameEmb: 'Pas de broderie de nom', noFlagEmb: 'Pas de broderie de drapeau', shipTo: 'Livraison',
     messageToCraftsman: "✍️ Message à l'Artisan", noMessage: 'Aucun message',
     confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur', addOns: 'Accessoires',
@@ -162,7 +162,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Referenzfotos', noPhoto: 'Kein Foto',
     fingerMap: 'Finger-Optionen & Stickposition', gloveSpecs: 'Spezifikationen',
     sportLabel: 'Sportart', handLabel: 'Hand', sizeLabel: 'Größe', positionLabel: 'Position', webLabel: 'Netz',
-    embroidery: 'Stickerei', nameLabel: 'Name', flagLabel: 'Flagge',
+    embroidery: 'Stickerei', nameLabel: 'Name', flagLabel: 'Flagge', borderLabel: 'Umrandung',
     noNameEmb: 'Keine Namensstickerei', noFlagEmb: 'Keine Flaggenstickerei', shipTo: 'Lieferadresse',
     messageToCraftsman: '✍️ Nachricht an den Handwerker', noMessage: 'Keine Nachricht',
     confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen', addOns: 'Zubehör',
@@ -173,7 +173,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Foto di Riferimento', noPhoto: 'Nessuna foto',
     fingerMap: 'Opzioni Dita & Mappa Ricamo', gloveSpecs: 'Specifiche',
     sportLabel: 'Sport', handLabel: 'Mano', sizeLabel: 'Misura', positionLabel: 'Posizione', webLabel: 'Web',
-    embroidery: 'Ricamo', nameLabel: 'Nome', flagLabel: 'Bandiera',
+    embroidery: 'Ricamo', nameLabel: 'Nome', flagLabel: 'Bandiera', borderLabel: 'Bordo',
     noNameEmb: 'Nessun ricamo del nome', noFlagEmb: 'Nessun ricamo della bandiera', shipTo: 'Spedizione',
     messageToCraftsman: "✍️ Messaggio all'Artigiano", noMessage: 'Nessun messaggio',
     confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno', addOns: 'Accessori',
@@ -184,7 +184,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: "Referentiefoto's", noPhoto: 'Geen foto',
     fingerMap: 'Vingeropties & Borduurpositie', gloveSpecs: 'Specificaties',
     sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Maat', positionLabel: 'Positie', webLabel: 'Web',
-    embroidery: 'Borduurwerk', nameLabel: 'Naam', flagLabel: 'Vlag',
+    embroidery: 'Borduurwerk', nameLabel: 'Naam', flagLabel: 'Vlag', borderLabel: 'Rand',
     noNameEmb: 'Geen naamborduring', noFlagEmb: 'Geen vlagborduring', shipTo: 'Verzendadres',
     messageToCraftsman: '✍️ Bericht aan de Vakman', noMessage: 'Geen bericht',
     confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen', addOns: 'Extra opties',
@@ -195,7 +195,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'ภาพอ้างอิงถุงมือ', noPhoto: 'ไม่มีภาพ',
     fingerMap: 'ตัวเลือกนิ้ว & แผนผังตำแหน่งปัก', gloveSpecs: 'สเปคถุงมือ',
     sportLabel: 'กีฬา', handLabel: 'มือที่ใช้', sizeLabel: 'ขนาด', positionLabel: 'ตำแหน่ง', webLabel: 'เว็บ',
-    embroidery: 'ปักชื่อ', nameLabel: 'ชื่อ', flagLabel: 'ธง',
+    embroidery: 'ปักชื่อ', nameLabel: 'ชื่อ', flagLabel: 'ธง', borderLabel: 'ขอบ',
     noNameEmb: 'ไม่มีการปักชื่อ', noFlagEmb: 'ไม่มีการปักธง', shipTo: 'จัดส่งไปที่',
     messageToCraftsman: '✍️ ข้อความถึงช่างฝีมือ', noMessage: 'ไม่มีข้อความ',
     confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน', addOns: 'ส่วนเสริม',
@@ -206,7 +206,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Mga Larawang Sanggunian', noPhoto: 'Walang larawan',
     fingerMap: 'Mga Opsyon sa Daliri & Mapa ng Burda', gloveSpecs: 'Mga Detalye',
     sportLabel: 'Isports', handLabel: 'Kamay', sizeLabel: 'Sukat', positionLabel: 'Posisyon', webLabel: 'Web',
-    embroidery: 'Burda', nameLabel: 'Pangalan', flagLabel: 'Bandila',
+    embroidery: 'Burda', nameLabel: 'Pangalan', flagLabel: 'Bandila', borderLabel: 'Gilid',
     noNameEmb: 'Walang burda ng pangalan', noFlagEmb: 'Walang burda ng bandila', shipTo: 'Ipadala sa',
     messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
     confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob', addOns: 'Mga Add-on',
@@ -217,7 +217,7 @@ const LABELS: { [lang: string]: UILabels } = {
     gloveRefPhotos: 'Fotos de Referência da Luva', noPhoto: 'Nenhuma foto fornecida',
     fingerMap: 'Acessórios de Dedo & Mapa de Bordado', gloveSpecs: 'Especificações da Luva',
     sportLabel: 'Esporte', handLabel: 'Mão', sizeLabel: 'Tamanho', positionLabel: 'Posição', webLabel: 'Rede',
-    embroidery: 'Bordado', nameLabel: 'Nome', flagLabel: 'Bandeira',
+    embroidery: 'Bordado', nameLabel: 'Nome', flagLabel: 'Bandeira', borderLabel: 'Contorno',
     noNameEmb: 'Sem bordado de nome', noFlagEmb: 'Sem bordado de bandeira', shipTo: 'Enviar para',
     messageToCraftsman: '✍️ Mensagem para o Artesão', noMessage: 'Sem mensagem',
     confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno', addOns: 'Adicionais',
@@ -286,6 +286,17 @@ function getEmbroideryFont(text: string, style?: EmbroideryStyle) {
 // 표시용 폰트 이름 추출: "'Playball', cursive" -> "Playball"
 function getFontDisplayName(fontFamily: string): string {
   return fontFamily.split(',')[0].replace(/['"]/g, '').trim();
+}
+
+// 자수 테두리(아웃라인)를 8방향 text-shadow로 그린다. -webkit-text-stroke는 html2canvas가
+// 무시해 캡처 이미지(고객 주문서/공장 발주서)에 안 찍히므로 text-shadow로 구현해 화면과 캡처를 일치시킴.
+function outlineShadow(color: string, w: number): string {
+  return [
+    `${-w}px ${-w}px 0 ${color}`, `${w}px ${-w}px 0 ${color}`,
+    `${-w}px ${w}px 0 ${color}`, `${w}px ${w}px 0 ${color}`,
+    `0 ${-w}px 0 ${color}`, `0 ${w}px 0 ${color}`,
+    `${-w}px 0 0 ${color}`, `${w}px 0 0 ${color}`,
+  ].join(', ');
 }
 
 function GNLogo({ bgColor, logoColor, width = 100, height = 61 }: {
@@ -846,18 +857,28 @@ export default function OrderSheet({
                   ...getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style),
                   fontSize: isFactory ? '48px' : '28px',
                   color: resolveColor(orderData.embroidery.name.color_hex, orderData.embroidery.name.color),
+                  textShadow: (orderData.embroidery.name.border || orderData.embroidery.name.border_hex)
+                    ? outlineShadow(resolveColor(orderData.embroidery.name.border_hex, orderData.embroidery.name.border), isFactory ? 1.5 : 1)
+                    : undefined,
                   background: '#f5f5f5', padding: isFactory ? '8px 16px' : '4px 12px', borderRadius: '3px',
                   display: 'inline-block', letterSpacing: '1px',
                 }}>
                   {orderData.embroidery.name.text}
                 </div>
                 <div style={{ fontSize: '12px', color: '#aaa', marginTop: '4px', textTransform: 'capitalize' }}>
-                  {pick(orderData.embroidery.name.color, orderData.embroidery.name.color_zh)} · #{orderData.embroidery.name.location} {posLabels[orderData.embroidery.name.location] || ''}
+                  {pick(orderData.embroidery.name.color, orderData.embroidery.name.color_zh)}
+                  {(orderData.embroidery.name.border || orderData.embroidery.name.border_zh)
+                    ? ` · ${t.borderLabel}: ${pick(orderData.embroidery.name.border, orderData.embroidery.name.border_zh)}`
+                    : ''}
+                  {' '}· #{orderData.embroidery.name.location} {posLabels[orderData.embroidery.name.location] || ''}
                 </div>
                 {isFactory && (
-                  // 사진 출력이 깨져도 정확한 서체로 자수할 수 있도록 폰트명을 텍스트로도 표기
+                  // 사진 출력이 깨져도 정확한 서체·테두리색으로 자수할 수 있도록 텍스트로도 표기
                   <div style={{ fontSize: '12px', color: '#c00', marginTop: '4px', fontWeight: 700 }}>
                     字体: {getFontDisplayName(getEmbroideryFont(orderData.embroidery.name.text, orderData.embroidery.name.font_style).fontFamily)}
+                    {(orderData.embroidery.name.border || orderData.embroidery.name.border_zh)
+                      ? ` · 边框颜色: ${pick(orderData.embroidery.name.border, orderData.embroidery.name.border_zh)}`
+                      : ''}
                   </div>
                 )}
               </div>
