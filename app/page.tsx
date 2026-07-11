@@ -45,9 +45,11 @@ export default function ChatPage() {
   const [pinnedGloveDisplay, setPinnedGloveDisplay] = useState<{ src: string; label: string } | null>(null);
 
   // 스펙 위저드 — sport/player_type/hand/position/size를 API 호출 없이 버튼으로 수집
-  type SpecField = 'sport' | 'player_type' | 'hand' | 'position' | 'size';
+  type SpecField = 'sport' | 'player_type' | 'hand' | 'position' | 'palm_construction' | 'size';
   const [specStep, setSpecStep] = useState<SpecField | null>(null);
-  const specAnswersRef = useRef<Record<SpecField, string>>({ sport: '', player_type: '', hand: '', position: '', size: '' });
+  const specAnswersRef = useRef<Record<SpecField, string>>({ sport: '', player_type: '', hand: '', position: '', palm_construction: '', size: '' });
+  // 위저드 진행 중 손님이 타이핑으로 답하려 할 때(오랜만이라 무심코 텍스트를 입력하는 경우 등) 버튼 선택을 안내
+  const [specNudge, setSpecNudge] = useState(false);
   // FLOW B(사진 업로드)는 첫 API 응답(경고+색상 코멘트)이 온 직후에 위저드를 시작해야 하므로 대기 플래그로 표시
   const specWizardPendingRef = useRef(false);
 
@@ -420,7 +422,7 @@ export default function ChatPage() {
     setSelectedLanguage(lang);
     selectedLanguageRef.current = lang;
     sessionStorage.setItem('gnLang', lang);
-    specAnswersRef.current = { sport: '', player_type: '', hand: '', position: '', size: '' };
+    specAnswersRef.current = { sport: '', player_type: '', hand: '', position: '', palm_construction: '', size: '' };
     const selected = selectedGloveRawRef.current;
     if (selected) {
       const imgTag = `[SHOW_IMAGE: ${selected.category}/${selected.id}.jpg]`;
@@ -631,6 +633,13 @@ export default function ChatPage() {
     const text = overrideText !== undefined ? overrideText : input;
     if (!text.trim() && images.length === 0) return;
 
+    // 버튼 위저드 진행 중에는 타이핑된 답을 API로 보내지 않고 버튼 선택을 안내 (프로그램 방식 전송(overrideText)은 예외)
+    if (overrideText === undefined && specStep) {
+      setSpecNudge(true);
+      setInput('');
+      return;
+    }
+
     const userMessage: Message = {
       role: 'user',
       content: text || '[USER_IMAGE]',
@@ -825,17 +834,17 @@ export default function ChatPage() {
   };
 
   // 사이즈 가이드 — route.ts의 "Size guide by position"와 동기화 유지
-  const SIZE_GUIDE: { key: string; label: string; min: number; max: number; step: number }[] = [
-    { key: 'pitcher', label: 'Pitcher', min: 11.5, max: 12.0, step: 0.25 },
-    { key: 'infield', label: 'Infield', min: 11.25, max: 11.75, step: 0.25 },
-    { key: 'outfield', label: 'Outfield', min: 12.5, max: 13.0, step: 0.25 },
+  // extra: 정규 step 범위를 벗어난 추가 사이즈(범위 끝에 별도로 붙음)
+  const SIZE_GUIDE: { key: string; label: string; min: number; max: number; step: number; extra?: number[] }[] = [
+    { key: 'pitcher', label: 'Pitcher', min: 11.5, max: 12.25, step: 0.25 },
+    { key: 'infield', label: 'Infield', min: 11.25, max: 12.0, step: 0.25 },
+    // 14"는 공인 규격을 벗어나 공식 경기에서 사용 불가 — 특수 요청 대응용으로만 제공
+    { key: 'outfield', label: 'Outfield', min: 12.5, max: 13.0, step: 0.25, extra: [14.0] },
     { key: 'first_base', label: 'First Base', min: 12.0, max: 13.0, step: 0.25 },
-    { key: 'catcher', label: 'Catcher', min: 32, max: 34, step: 1 },
+    { key: 'catcher', label: 'Catcher', min: 32, max: 34, step: 0.5 },
   ];
 
-  const SPEC_ORDER: SpecField[] = ['sport', 'player_type', 'hand', 'position', 'size'];
-
-  type SpecQuestionSet = Record<Exclude<SpecField, 'size'>, { question: string; options: { label: string; value: string }[] }>;
+  type SpecQuestionSet = Record<Exclude<SpecField, 'size' | 'palm_construction'>, { question: string; options: { label: string; value: string }[] }>;
 
   // 스펙 위저드 질문/버튼 라벨 — 12개 언어 전체 번역 (value는 언어와 무관하게 고정된 내부 코드 유지)
   const SPEC_QUESTIONS_BY_LANG: Record<Lang, SpecQuestionSet> = {
@@ -920,20 +929,243 @@ export default function ChatPage() {
     th: 'คุณต้องการขนาดไหน?', tl: 'Anong size ang gusto mo?', pt: 'Qual tamanho você gostaria?',
   };
 
-  const SPEC_QUESTIONS = SPEC_QUESTIONS_BY_LANG[selectedLanguage || 'en'];
+  // 팜 구조 위저드 질문 — 포수(catcher)는 아예 이 질문을 건너뜀(펠트팜이라 선택지가 없음).
+  // value는 언어 무관 고정 코드('single'/'double'/'double_plus') 유지, 갤러리의 "팜 구조 가이드" 공지와 동일한 3단계 구조.
+  // 팜 구조는 커스텀 글러브 업계에서도 생소한 선택지라, 손님이 묻기 전에 intro(팜이 뭔지+싱글/더블 차이)와
+  // positionNote(방금 고른 포지션엔 왜 이게 맞는지)를 먼저 설명한 뒤 질문+버튼을 보여줌.
+  type PalmValue = 'single' | 'double' | 'double_plus';
+  type PalmPositionKey = 'pitcher' | 'infield' | 'outfield' | 'first_base';
+  const PALM_QUESTIONS_BY_LANG: Record<Lang, {
+    intro: string;
+    positionNote: Record<PalmPositionKey, string>;
+    question: string;
+    options: { value: PalmValue; label: string }[];
+  }> = {
+    en: {
+      intro: 'Quick note: the "palm" isn\'t the fingers or the web — it\'s the leather reinforcement at the base of the glove, the pocket where the ball actually lands. Single Palm (2 layers) is the base build: lightest, breaks in fastest. Double Palm (3 layers) adds one reinforcement layer for a sturdier catch. Double Palm Plus (4 layers) reinforces both sides for maximum durability. The ideal choice actually depends on your position — here\'s what fits yours:',
+      positionNote: {
+        pitcher: 'For pitchers: you grip the glove hard at release and take fast return throws from the catcher, so Double Palm Plus is the standard pick.',
+        first_base: 'For first base: you catch a lot of hard throws, so Double Palm balances hand protection with a good catch.',
+        infield: 'For infield: preferences vary a lot here, so all three are open — Double Palm is the safest default.',
+        outfield: 'For outfield: it barely matters since you catch more with your range — pick whichever fits your style.',
+      },
+      question: 'Which palm construction would you like?', options: [
+        { value: 'single', label: 'Single Palm (2 layers) — lightest, breaks in fast' },
+        { value: 'double', label: 'Double Palm (3 layers) — balanced, most popular' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 layers) — most durable' },
+      ],
+    },
+    ko: {
+      intro: '잠깐! \'팜(palm)\'이란 손가락이나 웹이 아니라, 공이 실제로 박히는 바닥(포켓) 부분에 덧대는 가죽을 말합니다. 싱글팜(2겹)은 기본 구조로 가장 가볍고 빨리 길들여지고, 더블팜(3겹)은 보강 가죽을 한 겹 더 붙여 더 튼튼하며, 더블팜 플러스(4겹)는 양쪽 다 보강해 가장 오래갑니다. 이상적인 선택은 포지션마다 다른데, 고객님의 포지션엔 이게 맞습니다:',
+      positionNote: {
+        pitcher: '투수는 투구 순간 글러브 손을 꽉 쥐고 포수의 빠른 송구도 받아야 해서 더블팜 플러스가 기본입니다.',
+        first_base: '1루수는 강한 송구를 자주 받기 때문에, 손 보호와 공 안착의 균형이 좋은 더블팜을 추천합니다.',
+        infield: '내야수는 선수마다 선호가 크게 갈려서 세 가지 모두 선택 가능하며, 더블팜이 가장 무난합니다.',
+        outfield: '외야수는 다리로 공을 잡는 포지션이라 팜 구조는 크게 상관없으니 취향대로 고르시면 됩니다.',
+      },
+      question: '팜(palm) 구조를 선택해주세요', options: [
+        { value: 'single', label: '싱글팜 (2겹) — 가장 가볍고 빨리 길들여짐' },
+        { value: 'double', label: '더블팜 (3겹) — 균형 잡힌 가장 무난한 선택' },
+        { value: 'double_plus', label: '더블팜 플러스 (4겹) — 최고의 내구성' },
+      ],
+    },
+    ja: {
+      intro: 'ちょっとご案内：「パーム」とは指でもウェブでもなく、ボールが実際に収まるグラブ底部（ポケット）に貼る補強革のことです。シングルパーム（2枚）は基本構造で最も軽く型付けが早い、ダブルパーム（3枚）は補強を1枚追加してより丈夫、ダブルパームプラス（4枚）は両側を補強し最も耐久性が高いです。実は最適な選択はポジションによって異なります。あなたのポジションにはこちらがおすすめです：',
+      positionNote: {
+        pitcher: '投手：投球の瞬間にグラブを強く握り、捕手からの速い返球も受けるため、標準はダブルパームプラスです。',
+        first_base: '一塁手：強い送球を受けることが多いため、手の保護と収まりのバランスが良いダブルパームがおすすめです。',
+        infield: '内野手：好みが大きく分かれるため三種類すべて選択可能で、ダブルパームが最も無難です。',
+        outfield: '外野手：足で追いつく守備が中心のためパーム構造はあまり影響せず、お好みで選んでください。',
+      },
+      question: 'パーム構造をお選びください', options: [
+        { value: 'single', label: 'シングルパーム (2枚) — 最も軽く型付けが早い' },
+        { value: 'double', label: 'ダブルパーム (3枚) — バランスの取れた定番' },
+        { value: 'double_plus', label: 'ダブルパームプラス (4枚) — 最高の耐久性' },
+      ],
+    },
+    zh: {
+      intro: '小提示：「掌垫（palm）」不是手指也不是网套，而是手套底部（口袋）——球实际落入的部位——所垫的皮革。Single Palm（2层）是基础结构，最轻、磨合最快；Double Palm（3层）多加一层加固，接球更稳固；Double Palm Plus（4层）两侧都加固，最耐用。最适合的选择其实因位置而异，以下是适合您位置的建议：',
+      positionNote: {
+        pitcher: '投手：出手瞬间需要紧握手套、还要接住捕手的快速回传球，因此默认推荐 Double Palm Plus。',
+        first_base: '一垒手：经常接强力回传球，Double Palm 能在保护手掌与球易落稳之间取得平衡。',
+        infield: '内野手：偏好差异很大，三种都可选，Double Palm 是最保险的默认选项。',
+        outfield: '外野手：主要靠双腿移动接球，掌垫结构影响不大，按个人喜好选择即可。',
+      },
+      question: '请选择掌垫结构', options: [
+        { value: 'single', label: 'Single Palm 单层掌垫 (2层) — 最轻，磨合最快' },
+        { value: 'double', label: 'Double Palm 双层掌垫 (3层) — 均衡，最受欢迎' },
+        { value: 'double_plus', label: 'Double Palm Plus 加强双层掌垫 (4层) — 最耐用' },
+      ],
+    },
+    es: {
+      intro: 'Una aclaración rápida: la "palma" no son los dedos ni la red — es el refuerzo de cuero en la base del guante, el bolsillo donde cae la pelota. Single Palm (2 capas) es la base: la más ligera y rápida de ablandar. Double Palm (3 capas) añade una capa de refuerzo para un agarre más firme. Double Palm Plus (4 capas) refuerza ambos lados para la máxima durabilidad. La opción ideal depende de tu posición — esto es lo que te conviene:',
+      positionNote: {
+        pitcher: 'Lanzador: aprietas el guante al soltar la pelota y recibes lanzamientos fuertes del receptor, por eso Double Palm Plus es lo estándar.',
+        first_base: 'Primera base: recibes muchos lanzamientos fuertes, así que Double Palm equilibra protección y buen agarre de la pelota.',
+        infield: 'Cuadro interior: las preferencias varían mucho aquí, así que las tres opciones están disponibles — Double Palm es la opción más segura.',
+        outfield: 'Jardín exterior: casi no importa porque atrapas más con las piernas — elige según tu gusto.',
+      },
+      question: '¿Qué construcción de palma prefieres?', options: [
+        { value: 'single', label: 'Single Palm (2 capas) — la más ligera, se ablanda rápido' },
+        { value: 'double', label: 'Double Palm (3 capas) — equilibrada, la más popular' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 capas) — la más duradera' },
+      ],
+    },
+    fr: {
+      intro: 'Petite précision : la « paume » n\'est ni les doigts ni le filet — c\'est le renfort en cuir à la base du gant, la poche où la balle atterrit. Single Palm (2 couches) est la construction de base : la plus légère et la plus rapide à assouplir. Double Palm (3 couches) ajoute une couche de renfort pour une prise plus solide. Double Palm Plus (4 couches) renforce les deux côtés pour une durabilité maximale. Le choix idéal dépend en fait de votre poste — voici ce qui convient au vôtre :',
+      positionNote: {
+        pitcher: 'Lanceur : vous serrez le gant au moment du lâcher et recevez des lancers rapides du receveur, donc Double Palm Plus est le standard.',
+        first_base: 'Premier but : vous recevez beaucoup de lancers puissants, donc Double Palm équilibre protection et bonne prise de balle.',
+        infield: 'Champ intérieur : les préférences varient beaucoup ici, donc les trois options sont disponibles — Double Palm reste le choix le plus sûr.',
+        outfield: 'Champ extérieur : cela importe peu car vous attrapez surtout avec vos jambes — choisissez selon votre préférence.',
+      },
+      question: 'Quelle construction de paume préférez-vous ?', options: [
+        { value: 'single', label: 'Single Palm (2 couches) — la plus légère, s\'assouplit vite' },
+        { value: 'double', label: 'Double Palm (3 couches) — équilibrée, la plus populaire' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 couches) — la plus durable' },
+      ],
+    },
+    de: {
+      intro: 'Kurzer Hinweis: Die „Palm" sind nicht die Finger oder das Netz — es ist die Lederverstärkung an der Basis des Handschuhs, die Tasche, in der der Ball landet. Single Palm (2 Schichten) ist die Grundkonstruktion: am leichtesten und am schnellsten eingespielt. Double Palm (3 Schichten) fügt eine Verstärkungsschicht für einen festeren Griff hinzu. Double Palm Plus (4 Schichten) verstärkt beide Seiten für maximale Haltbarkeit. Die ideale Wahl hängt eigentlich von deiner Position ab — das passt zu deiner:',
+      positionNote: {
+        pitcher: 'Pitcher: Du drückst den Handschuh beim Loslassen fest zusammen und fängst harte Rückwürfe vom Catcher, daher ist Double Palm Plus der Standard.',
+        first_base: 'Erste Base: Du empfängst viele harte Würfe, daher bietet Double Palm die beste Balance zwischen Schutz und gutem Ballsitz.',
+        infield: 'Infield: Hier gehen die Vorlieben stark auseinander, daher stehen alle drei Optionen zur Verfügung — Double Palm ist die sicherste Standardwahl.',
+        outfield: 'Outfield: Spielt kaum eine Rolle, da du den Ball eher mit den Beinen erreichst — wähle nach Geschmack.',
+      },
+      question: 'Welche Palm-Konstruktion möchten Sie?', options: [
+        { value: 'single', label: 'Single Palm (2 Schichten) — am leichtesten, spielt sich schnell ein' },
+        { value: 'double', label: 'Double Palm (3 Schichten) — ausgewogen, am beliebtesten' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 Schichten) — am haltbarsten' },
+      ],
+    },
+    it: {
+      intro: 'Una precisazione veloce: il "palmo" non sono le dita né la rete — è il rinforzo in pelle alla base del guanto, la tasca dove atterra la palla. Single Palm (2 strati) è la costruzione base: la più leggera e la più rapida da ammorbidire. Double Palm (3 strati) aggiunge uno strato di rinforzo per una presa più solida. Double Palm Plus (4 strati) rinforza entrambi i lati per la massima durabilità. La scelta ideale dipende in realtà dalla tua posizione — ecco cosa fa per te:',
+      positionNote: {
+        pitcher: 'Lanciatore: stringi il guanto al momento del rilascio e ricevi lanci veloci dal ricevitore, quindi Double Palm Plus è lo standard.',
+        first_base: 'Prima base: ricevi molti lanci forti, quindi Double Palm bilancia protezione e buona presa della palla.',
+        infield: 'Interno campo: qui le preferenze variano molto, quindi tutte e tre le opzioni sono disponibili — Double Palm resta la scelta più sicura.',
+        outfield: 'Esterno campo: conta poco perché catturi di più con le gambe — scegli secondo il tuo gusto.',
+      },
+      question: 'Quale costruzione del palmo preferisci?', options: [
+        { value: 'single', label: 'Single Palm (2 strati) — la più leggera, si ammorbidisce in fretta' },
+        { value: 'double', label: 'Double Palm (3 strati) — equilibrata, la più popolare' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 strati) — la più durevole' },
+      ],
+    },
+    nl: {
+      intro: 'Even ter info: de "palm" is niet je vingers of het web — het is de leren versteviging aan de basis van de handschoen, de pocket waar de bal landt. Single Palm (2 lagen) is de basisconstructie: het lichtst en het snelst ingespeeld. Double Palm (3 lagen) voegt een verstevigingslaag toe voor een steviger vangst. Double Palm Plus (4 lagen) verstevigt beide kanten voor maximale duurzaamheid. De ideale keuze hangt eigenlijk af van je positie — dit past bij de jouwe:',
+      positionNote: {
+        pitcher: 'Pitcher: je knijpt de handschoen stevig dicht bij het loslaten en vangt harde terugworpen van de catcher, dus Double Palm Plus is standaard.',
+        first_base: 'Eerste honk: je ontvangt veel harde worpen, dus Double Palm biedt de beste balans tussen bescherming en een goede vangst.',
+        infield: 'Binnenveld: hier lopen de voorkeuren sterk uiteen, dus alle drie zijn beschikbaar — Double Palm blijft de veiligste standaardkeuze.',
+        outfield: 'Buitenveld: maakt weinig uit, want je vangt vooral met je benen — kies wat bij jou past.',
+      },
+      question: 'Welke palmconstructie wil je?', options: [
+        { value: 'single', label: 'Single Palm (2 lagen) — lichtst, speelt snel in' },
+        { value: 'double', label: 'Double Palm (3 lagen) — evenwichtig, meest populair' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 lagen) — meest duurzaam' },
+      ],
+    },
+    th: {
+      intro: 'ขออธิบายสักนิด "ปาล์ม (palm)" ไม่ใช่นิ้วมือหรือเว็บ แต่เป็นแผ่นหนังเสริมที่ฐานถุงมือ ตรงกระเป๋าที่ลูกบอลตกลงมาจริง ๆ Single Palm (2 ชั้น) คือโครงสร้างพื้นฐาน เบาที่สุดและเข้ามือเร็วที่สุด Double Palm (3 ชั้น) เพิ่มชั้นเสริมอีกหนึ่งชั้นเพื่อการรับที่มั่นคงขึ้น Double Palm Plus (4 ชั้น) เสริมทั้งสองด้านเพื่อความทนทานสูงสุด จริง ๆ แล้วตัวเลือกที่เหมาะสมขึ้นอยู่กับตำแหน่งของคุณ นี่คือสิ่งที่เหมาะกับตำแหน่งของคุณ:',
+      positionNote: {
+        pitcher: 'พิตเชอร์: คุณต้องกำมือถุงมือแน่นตอนปล่อยลูก และรับลูกขว้างเร็วจากแคตเชอร์ ดังนั้นค่าเริ่มต้นคือ Double Palm Plus',
+        first_base: 'เบสหนึ่ง: คุณรับลูกขว้างแรง ๆ บ่อย Double Palm จึงสมดุลระหว่างการปกป้องมือกับการรับลูกที่ดี',
+        infield: 'อินฟิลด์: ความชอบตรงนี้แตกต่างกันมาก จึงเลือกได้ทั้ง 3 แบบ โดย Double Palm เป็นค่าเริ่มต้นที่ปลอดภัยที่สุด',
+        outfield: 'เอาต์ฟิลด์: แทบไม่มีผลเพราะคุณรับลูกด้วยขาเป็นหลัก เลือกตามความชอบได้เลย',
+      },
+      question: 'คุณต้องการโครงสร้างปาล์มแบบไหน?', options: [
+        { value: 'single', label: 'Single Palm (2 ชั้น) — เบาที่สุด เข้ามือเร็วที่สุด' },
+        { value: 'double', label: 'Double Palm (3 ชั้น) — สมดุล ได้รับความนิยมมากที่สุด' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 ชั้น) — ทนทานที่สุด' },
+      ],
+    },
+    tl: {
+      intro: 'Isang mabilisang paliwanag: ang "palm" ay hindi ang mga daliri o ang web — ito ang reinforcement na katad sa base ng guwantes, ang bulsa kung saan talagang dumarapo ang bola. Ang Single Palm (2 layer) ang basic construction: pinakamagaan at pinakamabilis mag-break in. Ang Double Palm (3 layer) ay may dagdag na reinforcement layer para sa mas matibay na hawak. Ang Double Palm Plus (4 layer) ay pinalakas ang dalawang panig para sa pinakamataas na durability. Ang pinakaangkop na pagpipilian ay depende talaga sa posisyon mo — ito ang bagay sa iyo:',
+      positionNote: {
+        pitcher: 'Pitcher: pinipiga mo ang guwantes nang husto sa release at tumatanggap ka ng malakas na balik-hagis mula sa catcher, kaya Double Palm Plus ang standard.',
+        first_base: 'First Base: madalas kang tumanggap ng malalakas na throw, kaya ang Double Palm ang balanse sa pagitan ng proteksyon at magandang pagdapo ng bola.',
+        infield: 'Infield: talagang magkaiba ang kagustuhan dito, kaya bukas ang tatlong opsyon — ang Double Palm pa rin ang pinakaligtas na default.',
+        outfield: 'Outfield: halos hindi mahalaga dahil mas gamit mo ang binti sa pagsalo — piliin ayon sa gusto mo.',
+      },
+      question: 'Anong palm construction ang gusto mo?', options: [
+        { value: 'single', label: 'Single Palm (2 layer) — pinakamagaan, mabilis mag-break in' },
+        { value: 'double', label: 'Double Palm (3 layer) — balanse, pinakasikat' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 layer) — pinakamatibay' },
+      ],
+    },
+    pt: {
+      intro: 'Uma explicação rápida: a "palma" não são os dedos nem a rede — é o reforço de couro na base da luva, o bolso onde a bola realmente cai. Single Palm (2 camadas) é a construção base: a mais leve e a mais rápida de amaciar. Double Palm (3 camadas) adiciona uma camada de reforço para uma pegada mais firme. Double Palm Plus (4 camadas) reforça os dois lados para durabilidade máxima. A escolha ideal depende, na verdade, da sua posição — veja o que combina com a sua:',
+      positionNote: {
+        pitcher: 'Arremessador: você aperta a luva na soltura e recebe arremessos fortes do receptor, por isso Double Palm Plus é o padrão.',
+        first_base: 'Primeira base: você recebe muitos arremessos fortes, então Double Palm equilibra proteção e boa acomodação da bola.',
+        infield: 'Quadro interno: as preferências variam muito aqui, então as três opções ficam disponíveis — Double Palm continua a escolha mais segura.',
+        outfield: 'Campo externo: quase não importa, pois você pega mais com as pernas — escolha conforme seu gosto.',
+      },
+      question: 'Qual construção de palma você prefere?', options: [
+        { value: 'single', label: 'Single Palm (2 camadas) — a mais leve, amacia rápido' },
+        { value: 'double', label: 'Double Palm (3 camadas) — equilibrada, a mais popular' },
+        { value: 'double_plus', label: 'Double Palm Plus (4 camadas) — a mais durável' },
+      ],
+    },
+  };
 
-  // position에서 고른 값의 범위/단위로 사이즈 버튼 목록 생성
+  const RECOMMENDED_LABEL: Record<Lang, string> = {
+    en: 'Recommended for this position', ko: '이 포지션에 추천', ja: 'このポジションにおすすめ',
+    zh: '推荐用于此位置', es: 'Recomendado para esta posición', fr: 'Recommandé pour ce poste',
+    de: 'Empfohlen für diese Position', it: 'Consigliato per questa posizione', nl: 'Aanbevolen voor deze positie',
+    th: 'แนะนำสำหรับตำแหน่งนี้', tl: 'Rekomendado para sa posisyong ito', pt: 'Recomendado para esta posição',
+  };
+
+  // 포지션별 기본 추천 팜 구조 — 갤러리 "팜 구조 가이드" 공지와 동일한 기준 (투수=더블팜플러스, 1루/내야/외야=더블팜, 포수=질문 자체를 건너뜀)
+  const recommendedPalmForPosition = (positionKey: string): PalmValue =>
+    positionKey === 'pitcher' ? 'double_plus' : 'double';
+
+  // 위저드 진행 중 텍스트로 답하려 할 때 보여주는 안내 문구 — 아래 버튼에서 골라달라고 친절하게 안내
+  const SPEC_NUDGE_TEXT: Record<Lang, string> = {
+    en: 'Please choose one of the options below 👇', ko: '아래 보기에서 선택해 주세요 👇', ja: '下の選択肢からお選びください 👇',
+    zh: '请从下方选项中选择 👇', es: 'Por favor, elige una de las opciones de abajo 👇', fr: 'Merci de choisir une option ci-dessous 👇',
+    de: 'Bitte wähle eine der Optionen unten 👇', it: 'Scegli una delle opzioni qui sotto 👇', nl: 'Kies een van de opties hieronder 👇',
+    th: 'กรุณาเลือกจากตัวเลือกด้านล่าง 👇', tl: 'Pumili ng isa sa mga opsyon sa ibaba 👇', pt: 'Escolha uma das opções abaixo 👇',
+  };
+
+  const SPEC_QUESTIONS = SPEC_QUESTIONS_BY_LANG[selectedLanguage || 'en'];
+  const PALM_QUESTION = PALM_QUESTIONS_BY_LANG[selectedLanguage || 'en'];
+
+  // position에서 고른 값의 범위/단위로 사이즈 버튼 목록 생성 (extra는 정규 step 범위 뒤에 그대로 추가)
   const sizeOptionsForPosition = (positionKey: string): { label: string; value: string }[] => {
     const guide = SIZE_GUIDE.find(p => p.key === positionKey);
     if (!guide) return [];
     const values: number[] = [];
     for (let v = guide.min; v <= guide.max + 1e-6; v += guide.step) values.push(Math.round(v * 100) / 100);
+    if (guide.extra) values.push(...guide.extra);
     return values.map(v => ({ label: `${v}"`, value: String(v) }));
   };
 
   // 스펙 위저드 질문 텍스트 — 버튼을 보여줄 때와 답변 후 대화 기록에 남길 때 동일하게 사용
+  // palm_construction은 손님 대부분이 처음 접하는 개념이라, 질문 전에 intro(팜 정의+싱글/더블 차이)와
+  // positionNote(방금 고른 포지션엔 왜 이게 맞는지)를 먼저 보여준 뒤 질문을 붙임
   const specQuestionText = (step: SpecField): string =>
-    step === 'size' ? SPEC_SIZE_QUESTION[selectedLanguage || 'en'] : SPEC_QUESTIONS[step].question;
+    step === 'size' ? SPEC_SIZE_QUESTION[selectedLanguage || 'en']
+    : step === 'palm_construction' ? [
+        PALM_QUESTION.intro,
+        PALM_QUESTION.positionNote[specAnswersRef.current.position as PalmPositionKey],
+        PALM_QUESTION.question,
+      ].filter(Boolean).join('\n\n')
+    : SPEC_QUESTIONS[step].question;
+
+  // position 다음 단계 결정 — 포수(catcher)는 팜 구조 선택지가 없으므로(펠트팜) palm_construction을 건너뜀
+  const nextSpecStep = (step: SpecField): SpecField | null => {
+    switch (step) {
+      case 'sport': return 'player_type';
+      case 'player_type': return 'hand';
+      case 'hand': return 'position';
+      case 'position': return specAnswersRef.current.position === 'catcher' ? 'size' : 'palm_construction';
+      case 'palm_construction': return 'size';
+      case 'size': return null;
+    }
+  };
 
   // 스펙 위저드 답변 처리 — 매 답변은 로컬에서 대화 기록에만 추가하고, 마지막(size) 답변에서만 실제 API 호출
   const answerSpec = (value: string, label: string) => {
@@ -941,11 +1173,12 @@ export default function ChatPage() {
     if (!step) return;
     const question = specQuestionText(step);
     specAnswersRef.current[step] = value;
+    setSpecNudge(false);
 
     const newMessages = [...messages, { role: 'assistant' as const, content: question }, { role: 'user' as const, content: label }];
     setMessages(newMessages);
 
-    const nextStep = SPEC_ORDER[SPEC_ORDER.indexOf(step) + 1] || null;
+    const nextStep = nextSpecStep(step);
     if (nextStep) {
       setSpecStep(nextStep);
     } else {
@@ -956,6 +1189,42 @@ export default function ChatPage() {
 
   const renderSpecPicker = () => {
     if (!specStep) return null;
+
+    if (specStep === 'palm_construction') {
+      const recommended = recommendedPalmForPosition(specAnswersRef.current.position);
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+          {PALM_QUESTION.options.map((opt) => {
+            const isRecommended = opt.value === recommended;
+            return (
+              <button
+                key={opt.value}
+                onClick={() => answerSpec(opt.value, opt.label)}
+                style={{
+                  background: isRecommended ? '#b8922a' : '#374151',
+                  border: isRecommended ? '2px solid #facc15' : '2px solid #4b5563',
+                  borderRadius: '10px',
+                  padding: '10px 14px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '2px',
+                }}
+              >
+                {isRecommended && (
+                  <span style={{ fontSize: '9px', color: '#facc15', letterSpacing: '1px', textTransform: 'uppercase' }}>
+                    ★ {RECOMMENDED_LABEL[selectedLanguage || 'en']}
+                  </span>
+                )}
+                <span style={{ color: '#fff', fontSize: '15px', fontWeight: 500 }}>{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      );
+    }
+
     const options = specStep === 'size' ? sizeOptionsForPosition(specAnswersRef.current.position) : SPEC_QUESTIONS[specStep].options;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
@@ -1390,6 +1659,9 @@ export default function ChatPage() {
                 <div className="max-w-xs lg:max-w-md p-3 rounded-2xl bg-gray-800">
                   <div className="whitespace-pre-wrap">{specQuestionText(specStep)}</div>
                   {renderSpecPicker()}
+                  {specNudge && (
+                    <div className="text-yellow-400 text-xs mt-2">{SPEC_NUDGE_TEXT[selectedLanguage || 'en']}</div>
+                  )}
                 </div>
               </div>
             )}

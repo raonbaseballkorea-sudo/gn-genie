@@ -12,6 +12,29 @@ interface Post {
   description: string;
   images: string[];
   created_at: string;
+  pinned: boolean;
+  translations?: { [lang: string]: { title: string; description: string } } | null;
+}
+
+// 주문서 이메일과 동일한 12개 언어 세트 (app/api/order/route.ts의 EMAIL_LABELS 참고)
+const LANGUAGES: { code: string; label: string }[] = [
+  { code: 'en', label: 'English' },
+  { code: 'ko', label: '한국어' },
+  { code: 'zh', label: '中文' },
+  { code: 'ja', label: '日本語' },
+  { code: 'es', label: 'Español' },
+  { code: 'fr', label: 'Français' },
+  { code: 'de', label: 'Deutsch' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'nl', label: 'Nederlands' },
+  { code: 'th', label: 'ไทย' },
+  { code: 'tl', label: 'Filipino' },
+  { code: 'pt', label: 'Português' },
+];
+
+function getPostContent(post: Post, lang: string): { title: string; description: string } {
+  const t = post.translations?.[lang];
+  return { title: t?.title || post.title, description: t?.description ?? post.description };
 }
 
 interface Comment {
@@ -30,6 +53,7 @@ export default function GalleryPage() {
   const [commentInput, setCommentInput] = useState<{ [postId: string]: { name: string; content: string } }>({});
   const [submitting, setSubmitting] = useState<string | null>(null);
   const [showComments, setShowComments] = useState<{ [postId: string]: boolean }>({});
+  const [lang, setLang] = useState('en');
 
   useEffect(() => {
     fetchPosts();
@@ -39,6 +63,7 @@ export default function GalleryPage() {
     const { data } = await supabase
       .from('gallery_posts')
       .select('*')
+      .order('pinned', { ascending: false })
       .order('created_at', { ascending: false });
     setPosts(data || []);
     setLoading(false);
@@ -99,9 +124,20 @@ export default function GalleryPage() {
             <h1 className="text-3xl font-black text-white">Gallery</h1>
             <p className="text-gray-400 text-sm mt-1">Share your GN glove with the community.</p>
           </div>
-          <Link href="/gallery/new" className="bg-yellow-400 text-black font-bold px-4 py-2 rounded-xl hover:bg-yellow-300 text-sm">
-            + Post
-          </Link>
+          <div className="flex items-center gap-2">
+            <select
+              value={lang}
+              onChange={e => setLang(e.target.value)}
+              className="bg-gray-800 text-white text-sm rounded-lg px-2 py-2 outline-none border border-gray-700"
+            >
+              {LANGUAGES.map(l => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
+            <Link href="/gallery/new" className="bg-yellow-400 text-black font-bold px-4 py-2 rounded-xl hover:bg-yellow-300 text-sm whitespace-nowrap">
+              + Post
+            </Link>
+          </div>
         </div>
 
         {loading ? (
@@ -113,13 +149,20 @@ export default function GalleryPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-6">
-            {posts.map(post => (
-              <div key={post.id} className="bg-gray-900 rounded-2xl overflow-hidden">
+            {posts.map(post => {
+              const content = getPostContent(post, lang);
+              return (
+              <div key={post.id} className={`bg-gray-900 rounded-2xl overflow-hidden ${post.pinned ? 'ring-2 ring-yellow-400' : ''}`}>
+                {post.pinned && (
+                  <div className="bg-yellow-400 text-black text-xs font-bold tracking-widest uppercase text-center py-1.5">
+                    📌 Notice
+                  </div>
+                )}
                 {post.images.length > 0 && (
                   post.images.length === 1 ? (
                     <img
                       src={post.images[0]}
-                      alt={post.title}
+                      alt={content.title}
                       className="w-full object-cover cursor-pointer"
                       style={{ maxHeight: '420px' }}
                       onClick={() => setModalImage(post.images[0])}
@@ -127,7 +170,7 @@ export default function GalleryPage() {
                   ) : (
                     <div className="grid grid-cols-2 gap-1">
                       {post.images.slice(0, 4).map((img, i) => (
-                        <img key={i} src={img} alt={`${post.title} ${i + 1}`}
+                        <img key={i} src={img} alt={`${content.title} ${i + 1}`}
                           className="w-full object-cover cursor-pointer"
                           style={{ height: '200px' }}
                           onClick={() => setModalImage(img)} />
@@ -136,8 +179,8 @@ export default function GalleryPage() {
                   )
                 )}
                 <div className="p-5">
-                  <h2 className="text-lg font-bold text-white mb-1">{post.title}</h2>
-                  {post.description && <p className="text-gray-400 text-sm leading-relaxed mb-3">{post.description}</p>}
+                  <h2 className="text-lg font-bold text-white mb-1">{content.title}</h2>
+                  {content.description && <p className="text-gray-400 text-sm leading-relaxed mb-3 whitespace-pre-wrap">{content.description}</p>}
                   <div className="flex items-center justify-between">
                     <span className="text-yellow-400 text-sm font-medium">{post.name}</span>
                     <span className="text-gray-600 text-xs">{formatDate(post.created_at)}</span>
@@ -200,7 +243,8 @@ export default function GalleryPage() {
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

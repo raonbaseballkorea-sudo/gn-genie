@@ -7,6 +7,7 @@ interface OrderData {
   hand: string;
   size: string;
   position: string;
+  palm_construction?: string;
   web_type: string;
   colors: {
     wrist?: string; wrist_hex?: string; wrist_zh?: string;
@@ -84,7 +85,7 @@ type UILabels = {
   orderSheet: string; colorChanges: string; additionalRequests: string; allAsPerPhoto: string;
   logoPatch: string; bg: string; logo: string; gloveRefPhotos: string; noPhoto: string;
   fingerMap: string; gloveSpecs: string; sportLabel: string; handLabel: string; sizeLabel: string;
-  positionLabel: string; webLabel: string; embroidery: string; nameLabel: string; flagLabel: string; borderLabel: string;
+  positionLabel: string; webLabel: string; palmLabel: string; embroidery: string; nameLabel: string; flagLabel: string; borderLabel: string;
   noNameEmb: string; noFlagEmb: string; shipTo: string; messageToCraftsman: string; noMessage: string;
   confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string; addOns: string;
 };
@@ -95,7 +96,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'All As Per Reference Photo', logoPatch: 'Logo Patch', bg: 'BG', logo: 'Logo',
     gloveRefPhotos: 'Glove Reference Photos', noPhoto: 'No photo provided',
     fingerMap: 'Finger Add-ons & Embroidery Position Map', gloveSpecs: 'Glove Specs',
-    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Size', positionLabel: 'Position', webLabel: 'Web',
+    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Size', positionLabel: 'Position', webLabel: 'Web', palmLabel: 'Palm',
     embroidery: 'Embroidery', nameLabel: 'Name', flagLabel: 'Flag', borderLabel: 'Border',
     noNameEmb: 'No name embroidery', noFlagEmb: 'No flag embroidery', shipTo: 'Ship To',
     messageToCraftsman: '✍️ Message to the Craftsman', noMessage: 'No message',
@@ -106,7 +107,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: '完全按照参考照片', logoPatch: '徽标贴片', bg: '底色', logo: '徽标',
     gloveRefPhotos: '手套参考照片', noPhoto: '未提供照片',
     fingerMap: '手指附加件 & 刺绣位置图', gloveSpecs: '手套规格',
-    sportLabel: '运动', handLabel: '惯用手', sizeLabel: '尺寸', positionLabel: '位置', webLabel: '网兜',
+    sportLabel: '运动', handLabel: '惯用手', sizeLabel: '尺寸', positionLabel: '位置', webLabel: '网兜', palmLabel: '掌垫',
     embroidery: '刺绣', nameLabel: '姓名', flagLabel: '旗帜', borderLabel: '边框',
     noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
     messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
@@ -117,7 +118,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: '참고 사진과 동일하게', logoPatch: '로고 패치', bg: '배경색', logo: '로고',
     gloveRefPhotos: '글러브 참고 사진', noPhoto: '제공된 사진 없음',
     fingerMap: '손가락 옵션 & 자수 위치도', gloveSpecs: '글러브 사양',
-    sportLabel: '종목', handLabel: '사용손', sizeLabel: '사이즈', positionLabel: '포지션', webLabel: '웹',
+    sportLabel: '종목', handLabel: '사용손', sizeLabel: '사이즈', positionLabel: '포지션', webLabel: '웹', palmLabel: '팜',
     embroidery: '자수', nameLabel: '이름', flagLabel: '국기', borderLabel: '테두리',
     noNameEmb: '이름 자수 없음', noFlagEmb: '국기 자수 없음', shipTo: '배송지',
     messageToCraftsman: '✍️ 장인에게 남기는 메시지', noMessage: '메시지 없음',
@@ -128,7 +129,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: '参考写真の通り', logoPatch: 'ロゴパッチ', bg: '背景色', logo: 'ロゴ',
     gloveRefPhotos: 'グラブ参考写真', noPhoto: '写真未提供',
     fingerMap: '指オプション & 刺繍位置図', gloveSpecs: 'グラブ仕様',
-    sportLabel: '種目', handLabel: '利き手', sizeLabel: 'サイズ', positionLabel: 'ポジション', webLabel: 'ウェブ',
+    sportLabel: '種目', handLabel: '利き手', sizeLabel: 'サイズ', positionLabel: 'ポジション', webLabel: 'ウェブ', palmLabel: 'パーム',
     embroidery: '刺繍', nameLabel: '名前', flagLabel: '国旗', borderLabel: '縁取り',
     noNameEmb: '名前刺繍なし', noFlagEmb: '国旗刺繍なし', shipTo: '配送先',
     messageToCraftsman: '✍️ 職人へのメッセージ', noMessage: 'メッセージなし',
@@ -139,7 +140,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Igual a la foto de referencia', logoPatch: 'Parche de Logo', bg: 'Fondo', logo: 'Logo',
     gloveRefPhotos: 'Fotos de Referencia', noPhoto: 'Sin foto',
     fingerMap: 'Complementos y Mapa de Bordado', gloveSpecs: 'Especificaciones',
-    sportLabel: 'Deporte', handLabel: 'Mano', sizeLabel: 'Talla', positionLabel: 'Posición', webLabel: 'Red',
+    sportLabel: 'Deporte', handLabel: 'Mano', sizeLabel: 'Talla', positionLabel: 'Posición', webLabel: 'Red', palmLabel: 'Palma',
     embroidery: 'Bordado', nameLabel: 'Nombre', flagLabel: 'Bandera', borderLabel: 'Borde',
     noNameEmb: 'Sin bordado de nombre', noFlagEmb: 'Sin bordado de bandera', shipTo: 'Enviar a',
     messageToCraftsman: '✍️ Mensaje para el Artesano', noMessage: 'Sin mensaje',
@@ -150,7 +151,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Comme la photo de référence', logoPatch: 'Écusson Logo', bg: 'Fond', logo: 'Logo',
     gloveRefPhotos: 'Photos de Référence', noPhoto: 'Aucune photo',
     fingerMap: 'Options Doigts & Plan de Broderie', gloveSpecs: 'Caractéristiques',
-    sportLabel: 'Sport', handLabel: 'Main', sizeLabel: 'Taille', positionLabel: 'Poste', webLabel: 'Toile',
+    sportLabel: 'Sport', handLabel: 'Main', sizeLabel: 'Taille', positionLabel: 'Poste', webLabel: 'Toile', palmLabel: 'Paume',
     embroidery: 'Broderie', nameLabel: 'Nom', flagLabel: 'Drapeau', borderLabel: 'Contour',
     noNameEmb: 'Pas de broderie de nom', noFlagEmb: 'Pas de broderie de drapeau', shipTo: 'Livraison',
     messageToCraftsman: "✍️ Message à l'Artisan", noMessage: 'Aucun message',
@@ -161,7 +162,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Wie auf dem Referenzfoto', logoPatch: 'Logo-Patch', bg: 'Hintergrund', logo: 'Logo',
     gloveRefPhotos: 'Referenzfotos', noPhoto: 'Kein Foto',
     fingerMap: 'Finger-Optionen & Stickposition', gloveSpecs: 'Spezifikationen',
-    sportLabel: 'Sportart', handLabel: 'Hand', sizeLabel: 'Größe', positionLabel: 'Position', webLabel: 'Netz',
+    sportLabel: 'Sportart', handLabel: 'Hand', sizeLabel: 'Größe', positionLabel: 'Position', webLabel: 'Netz', palmLabel: 'Palm',
     embroidery: 'Stickerei', nameLabel: 'Name', flagLabel: 'Flagge', borderLabel: 'Umrandung',
     noNameEmb: 'Keine Namensstickerei', noFlagEmb: 'Keine Flaggenstickerei', shipTo: 'Lieferadresse',
     messageToCraftsman: '✍️ Nachricht an den Handwerker', noMessage: 'Keine Nachricht',
@@ -172,7 +173,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Come nella foto di riferimento', logoPatch: 'Patch Logo', bg: 'Sfondo', logo: 'Logo',
     gloveRefPhotos: 'Foto di Riferimento', noPhoto: 'Nessuna foto',
     fingerMap: 'Opzioni Dita & Mappa Ricamo', gloveSpecs: 'Specifiche',
-    sportLabel: 'Sport', handLabel: 'Mano', sizeLabel: 'Misura', positionLabel: 'Posizione', webLabel: 'Web',
+    sportLabel: 'Sport', handLabel: 'Mano', sizeLabel: 'Misura', positionLabel: 'Posizione', webLabel: 'Web', palmLabel: 'Palmo',
     embroidery: 'Ricamo', nameLabel: 'Nome', flagLabel: 'Bandiera', borderLabel: 'Bordo',
     noNameEmb: 'Nessun ricamo del nome', noFlagEmb: 'Nessun ricamo della bandiera', shipTo: 'Spedizione',
     messageToCraftsman: "✍️ Messaggio all'Artigiano", noMessage: 'Nessun messaggio',
@@ -183,7 +184,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Volgens referentiefoto', logoPatch: 'Logo Patch', bg: 'Achtergrond', logo: 'Logo',
     gloveRefPhotos: "Referentiefoto's", noPhoto: 'Geen foto',
     fingerMap: 'Vingeropties & Borduurpositie', gloveSpecs: 'Specificaties',
-    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Maat', positionLabel: 'Positie', webLabel: 'Web',
+    sportLabel: 'Sport', handLabel: 'Hand', sizeLabel: 'Maat', positionLabel: 'Positie', webLabel: 'Web', palmLabel: 'Palm',
     embroidery: 'Borduurwerk', nameLabel: 'Naam', flagLabel: 'Vlag', borderLabel: 'Rand',
     noNameEmb: 'Geen naamborduring', noFlagEmb: 'Geen vlagborduring', shipTo: 'Verzendadres',
     messageToCraftsman: '✍️ Bericht aan de Vakman', noMessage: 'Geen bericht',
@@ -194,7 +195,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'ตามภาพอ้างอิงทั้งหมด', logoPatch: 'แผ่นโลโก้', bg: 'พื้นหลัง', logo: 'โลโก้',
     gloveRefPhotos: 'ภาพอ้างอิงถุงมือ', noPhoto: 'ไม่มีภาพ',
     fingerMap: 'ตัวเลือกนิ้ว & แผนผังตำแหน่งปัก', gloveSpecs: 'สเปคถุงมือ',
-    sportLabel: 'กีฬา', handLabel: 'มือที่ใช้', sizeLabel: 'ขนาด', positionLabel: 'ตำแหน่ง', webLabel: 'เว็บ',
+    sportLabel: 'กีฬา', handLabel: 'มือที่ใช้', sizeLabel: 'ขนาด', positionLabel: 'ตำแหน่ง', webLabel: 'เว็บ', palmLabel: 'ปาล์ม',
     embroidery: 'ปักชื่อ', nameLabel: 'ชื่อ', flagLabel: 'ธง', borderLabel: 'ขอบ',
     noNameEmb: 'ไม่มีการปักชื่อ', noFlagEmb: 'ไม่มีการปักธง', shipTo: 'จัดส่งไปที่',
     messageToCraftsman: '✍️ ข้อความถึงช่างฝีมือ', noMessage: 'ไม่มีข้อความ',
@@ -205,7 +206,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Ayon sa larawang sanggunian', logoPatch: 'Logo Patch', bg: 'Background', logo: 'Logo',
     gloveRefPhotos: 'Mga Larawang Sanggunian', noPhoto: 'Walang larawan',
     fingerMap: 'Mga Opsyon sa Daliri & Mapa ng Burda', gloveSpecs: 'Mga Detalye',
-    sportLabel: 'Isports', handLabel: 'Kamay', sizeLabel: 'Sukat', positionLabel: 'Posisyon', webLabel: 'Web',
+    sportLabel: 'Isports', handLabel: 'Kamay', sizeLabel: 'Sukat', positionLabel: 'Posisyon', webLabel: 'Web', palmLabel: 'Palm',
     embroidery: 'Burda', nameLabel: 'Pangalan', flagLabel: 'Bandila', borderLabel: 'Gilid',
     noNameEmb: 'Walang burda ng pangalan', noFlagEmb: 'Walang burda ng bandila', shipTo: 'Ipadala sa',
     messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
@@ -216,7 +217,7 @@ const LABELS: { [lang: string]: UILabels } = {
     allAsPerPhoto: 'Tudo conforme a foto de referência', logoPatch: 'Emblema do Logo', bg: 'Fundo', logo: 'Logo',
     gloveRefPhotos: 'Fotos de Referência da Luva', noPhoto: 'Nenhuma foto fornecida',
     fingerMap: 'Acessórios de Dedo & Mapa de Bordado', gloveSpecs: 'Especificações da Luva',
-    sportLabel: 'Esporte', handLabel: 'Mão', sizeLabel: 'Tamanho', positionLabel: 'Posição', webLabel: 'Rede',
+    sportLabel: 'Esporte', handLabel: 'Mão', sizeLabel: 'Tamanho', positionLabel: 'Posição', webLabel: 'Rede', palmLabel: 'Palma',
     embroidery: 'Bordado', nameLabel: 'Nome', flagLabel: 'Bandeira', borderLabel: 'Contorno',
     noNameEmb: 'Sem bordado de nome', noFlagEmb: 'Sem bordado de bandeira', shipTo: 'Enviar para',
     messageToCraftsman: '✍️ Mensagem para o Artesão', noMessage: 'Sem mensagem',
@@ -476,6 +477,8 @@ export default function OrderSheet({
     infield: '内野', outfield: '外野', pitcher: '投手', catcher: '捕手', 'first base': '一垒',
     '내야': '内野', '외야': '外野', '투수': '投手', '포수': '捕手', '1루': '一垒',
     '内野手': '内野', '外野手': '外野', '投手': '投手', '捕手': '捕手',
+    // palm_construction — 챗봇이 항상 이 영어 용어 그대로 추출해 저장하므로(app/api/chat/route.ts 지침) 언어 분기 불필요
+    'Single Palm': '单层掌垫 (Single Palm)', 'Double Palm': '双层掌垫 (Double Palm)', 'Double Palm Plus': '加强双层掌垫 (Double Palm Plus)',
   };
   const specVal = (val?: string) => {
     if (!val || !isFactory) return val || '-';
@@ -546,6 +549,8 @@ export default function OrderSheet({
     [t.sizeLabel,     orderData.size ? `${orderData.size}"` : '-'],
     [t.positionLabel, specVal(orderData.position)],
     [t.webLabel,      pick(orderData.web_type, orderData.web_type_zh) || '-'],
+    // 포수미트는 팜 구조 선택지가 없어(펠트팜) 위저드 자체를 건너뛰므로 값이 없으면 행을 아예 표시하지 않음
+    ...(orderData.palm_construction ? [[t.palmLabel, specVal(orderData.palm_construction)]] : []),
   ];
 
   const shellColor = resolveColor(orderData.colors?.wrist_hex, orderData.colors?.wrist || orderData.colors?.shell);
