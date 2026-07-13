@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import OrderSheet from './components/OrderSheet';
+import OrderSheet, { GNLogo } from './components/OrderSheet';
 import Nav from './components/Nav';
 
 interface Message {
@@ -13,7 +13,7 @@ interface Message {
 export default function ChatPage() {
   const [email, setEmail] = useState('');
   const [code, setCode] = useState('');
-  const [step, setStep] = useState<'email' | 'verify' | 'language' | 'intro' | 'select' | 'chat' | 'order'>('email');
+  const [step, setStep] = useState<'email' | 'verify' | 'language' | 'intro' | 'select' | 'chat' | 'craftsman' | 'order'>('email');
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,6 +30,17 @@ export default function ChatPage() {
   const [selectedLanguage, setSelectedLanguage] = useState<Lang | null>(null);
   const [orderProcessing, setOrderProcessing] = useState(false);
   const selectedLanguageRef = useRef<Lang | null>(null);
+  // 장인 메시지 — AI가 아니라 앱이 결정론적 스텝으로 수집(ORDER_COMPLETE 직후, 주문서 직전)
+  const [craftsmanMsg, setCraftsmanMsg] = useState('');
+  const [craftsmanBusy, setCraftsmanBusy] = useState(false);
+  // 로고 패치 색 — [LOGO_PICK] 마커가 오면 스와치 팔레트로 배경색→글자색을 고름(모호한 답 원천 차단).
+  // 배경색을 먼저 고르면 여기에 저장하고, 글자색까지 고르면 AI에 정확한 이름+hex를 전송.
+  const [logoBg, setLogoBg] = useState<{ name: string; hex: string } | null>(null);
+  // 고객정보 폼 — [CUSTOMER_FORM] 마커가 오면 결정론적 폼으로 이름/전화/주소를 받고,
+  // 제출 시 /api/validate-address로 우편번호↔주소를 검증한 뒤에만 AI로 전송.
+  const [cf, setCf] = useState({ name: '', phone: '', country: '', countryOther: '', street: '', city: '', state: '', postal: '' });
+  const [cfValidating, setCfValidating] = useState(false);
+  const [cfError, setCfError] = useState<string | null>(null);
 
   // useRef — 렌더링과 무관하게 항상 최신값 유지
   const uploadedImagesRef = useRef<{ base64: string; type: string }[]>([]);
@@ -408,13 +419,31 @@ export default function ChatPage() {
     setLoading(false);
   };
 
-  // 언어 스텝에서 언어 버튼 클릭 시 — 언어를 확정하고 intro(주문방법 안내/Q&A) 스텝으로 이동
+  // 첫 인사말 — 내용이 항상 고정이라 AI가 아니라 코드가 즉시 띄운다(진입 지연·문구 드리프트 제거).
+  // 후속 Q&A만 AI(mode:'faq')가 담당. intro는 마크다운을 렌더하지 않으므로 순수 텍스트로 작성.
+  const INTRO_GREETING: Record<Lang, string> = {
+    en: 'Hello! 👋 Welcome to GN Glove!\n\nWe make custom baseball/softball gloves, and every glove is a flat $169 — with no extra charges at all. Color changes, embroidery, logos… everything is included.\n\nOrdering is simple:\n1. Upload 1–4 reference photos, or pick a glove from our catalog.\n2. Answer about 10 quick questions to build your glove.\n3. It ships within 30 days of payment.\n\nHave any questions? Feel free to ask — or just tap the button below to get started! 😊',
+    ko: '안녕하세요! 👋 GN Glove에 오신 것을 환영합니다!\n\n저희는 맞춤형 야구/소프트볼 글러브를 만들며, 모든 글러브가 $169 — 추가 비용이 전혀 없습니다. 색상 변경, 자수, 로고까지 모두 포함이에요.\n\n주문 방식은 간단합니다:\n1. 원하는 글러브 사진(1~4장)을 올리거나 카탈로그에서 선택하고\n2. 약 10개의 간단한 질문에 답하면 끝이에요.\n3. 결제 후 30일 안에 배송됩니다.\n\n궁금한 점이 있으면 편하게 물어보세요. 바로 시작하시려면 아래 버튼을 눌러주세요! 😊',
+    ja: 'こんにちは！👋 GN Glove へようこそ！\n\n当店はカスタム野球・ソフトボールグラブを制作しており、どのグラブも一律 $169 — 追加料金は一切ありません。カラー変更・刺繍・ロゴまですべて込みです。\n\nご注文はかんたん：\n1. お好きなグラブの写真（1〜4枚）をアップロード、またはカタログから選択\n2. 約10問のかんたんな質問に答えるだけ\n3. お支払いから30日以内に発送します。\n\nご質問があればお気軽にどうぞ。すぐ始めるには下のボタンを押してください！😊',
+    zh: '您好！👋 欢迎来到 GN Glove！\n\n我们制作定制棒球/垒球手套，每副手套统一 $169 — 完全没有额外费用。改色、刺绣、徽标……全部包含在内。\n\n下单很简单：\n1. 上传1~4张参考照片，或从目录中选择一副手套\n2. 回答约10个简单问题来定制您的手套\n3. 付款后30天内发货。\n\n有任何问题都可以问我，或直接点击下方按钮开始吧！😊',
+    es: '¡Hola! 👋 ¡Bienvenido a GN Glove!\n\nHacemos guantes de béisbol/softbol a medida, y cada guante cuesta $169 — sin cargos adicionales. Cambios de color, bordados, logos… todo está incluido.\n\nPedir es sencillo:\n1. Sube de 1 a 4 fotos de referencia, o elige un guante de nuestro catálogo.\n2. Responde unas 10 preguntas rápidas para crear tu guante.\n3. Se envía dentro de los 30 días tras el pago.\n\n¿Tienes preguntas? Pregúntame — o simplemente toca el botón de abajo para empezar. 😊',
+    fr: 'Bonjour ! 👋 Bienvenue chez GN Glove !\n\nNous fabriquons des gants de baseball/softball sur mesure, et chaque gant est à $169 — sans aucun frais supplémentaire. Changements de couleur, broderies, logos… tout est inclus.\n\nCommander est simple :\n1. Téléchargez 1 à 4 photos de référence, ou choisissez un gant dans notre catalogue.\n2. Répondez à une dizaine de questions rapides pour créer votre gant.\n3. Livraison sous 30 jours après paiement.\n\nDes questions ? N’hésitez pas — ou appuyez sur le bouton ci-dessous pour commencer ! 😊',
+    de: 'Hallo! 👋 Willkommen bei GN Glove!\n\nWir fertigen individuelle Baseball-/Softball-Handschuhe, und jeder Handschuh kostet pauschal $169 — ganz ohne Aufpreis. Farbänderungen, Stickereien, Logos… alles ist inklusive.\n\nBestellen ist einfach:\n1. Lade 1–4 Referenzfotos hoch oder wähle einen Handschuh aus unserem Katalog.\n2. Beantworte rund 10 kurze Fragen, um deinen Handschuh zu gestalten.\n3. Versand innerhalb von 30 Tagen nach Zahlung.\n\nFragen? Frag einfach — oder tippe unten auf den Button, um zu starten! 😊',
+    it: 'Ciao! 👋 Benvenuto in GN Glove!\n\nRealizziamo guanti da baseball/softball su misura, e ogni guanto costa $169 — senza costi aggiuntivi. Cambi colore, ricami, loghi… è tutto incluso.\n\nOrdinare è semplice:\n1. Carica da 1 a 4 foto di riferimento, o scegli un guanto dal catalogo.\n2. Rispondi a circa 10 domande veloci per creare il tuo guanto.\n3. Spedizione entro 30 giorni dal pagamento.\n\nHai domande? Chiedi pure — oppure tocca il pulsante qui sotto per iniziare! 😊',
+    nl: 'Hallo! 👋 Welkom bij GN Glove!\n\nWij maken op maat gemaakte honkbal-/softbalhandschoenen, en elke handschoen kost $169 — zonder extra kosten. Kleurwijzigingen, borduurwerk, logo’s… alles is inbegrepen.\n\nBestellen is eenvoudig:\n1. Upload 1–4 referentiefoto’s, of kies een handschoen uit onze catalogus.\n2. Beantwoord ongeveer 10 korte vragen om je handschoen samen te stellen.\n3. Verzending binnen 30 dagen na betaling.\n\nVragen? Stel ze gerust — of tik op de knop hieronder om te beginnen! 😊',
+    th: 'สวัสดี! 👋 ยินดีต้อนรับสู่ GN Glove!\n\nเราทำถุงมือเบสบอล/ซอฟต์บอลแบบสั่งทำ ทุกใบราคาเดียว $169 — ไม่มีค่าใช้จ่ายเพิ่มเลย เปลี่ยนสี ปักชื่อ โลโก้… รวมทั้งหมดแล้ว\n\nสั่งซื้อง่ายมาก:\n1. อัปโหลดรูปอ้างอิง 1–4 รูป หรือเลือกถุงมือจากแคตตาล็อก\n2. ตอบคำถามสั้นๆ ประมาณ 10 ข้อเพื่อสร้างถุงมือของคุณ\n3. จัดส่งภายใน 30 วันหลังชำระเงิน\n\nมีคำถามไหม? ถามได้เลย หรือกดปุ่มด้านล่างเพื่อเริ่มได้เลย! 😊',
+    tl: 'Kumusta! 👋 Maligayang pagdating sa GN Glove!\n\nGumagawa kami ng custom na baseball/softball gloves, at bawat glove ay $169 — walang anumang dagdag na bayad. Pagbabago ng kulay, burda, logo… kasama na lahat.\n\nMadali lang mag-order:\n1. Mag-upload ng 1–4 na reference photo, o pumili ng glove sa aming catalog.\n2. Sagutin ang mga 10 mabilis na tanong para buuin ang iyong glove.\n3. Ipapadala sa loob ng 30 araw pagkatapos magbayad.\n\nMay tanong? Magtanong lang — o pindutin ang button sa ibaba para magsimula! 😊',
+    pt: 'Olá! 👋 Bem-vindo à GN Glove!\n\nFazemos luvas de beisebol/softbol personalizadas, e cada luva custa $169 — sem nenhuma taxa extra. Mudanças de cor, bordados, logos… está tudo incluído.\n\nFazer o pedido é simples:\n1. Envie de 1 a 4 fotos de referência, ou escolha uma luva no nosso catálogo.\n2. Responda a cerca de 10 perguntas rápidas para criar a sua luva.\n3. Enviamos em até 30 dias após o pagamento.\n\nTem dúvidas? É só perguntar — ou toque no botão abaixo para começar! 😊',
+  };
+
+  // 언어 스텝에서 언어 버튼 클릭 시 — 언어를 확정하고 intro(주문방법 안내/Q&A) 스텝으로 이동.
+  // 인사말은 AI 호출 없이 정적 문구를 즉시 시드(후속 질문만 AI가 답변).
   const pickLanguage = (lang: Lang) => {
     setSelectedLanguage(lang);
     selectedLanguageRef.current = lang;
     sessionStorage.setItem('gnLang', lang);
+    setIntroMessages([{ role: 'assistant', content: INTRO_GREETING[lang] }]);
     setStep('intro');
-    sendIntroMessage();
   };
 
   // 실제 주문 채팅 진입 시 — 선택 언어로 환영 메시지(카탈로그) 또는 업로드 안내(직접 사진) 표시하고 스펙 위저드 시작
@@ -605,7 +634,9 @@ export default function ChatPage() {
         console.log('[DEBUG] finalOrder.customer.email:', finalOrder.customer.email);
 
         setOrderData(finalOrder);
-        setStep('order');
+        setCraftsmanMsg('');
+        // 장인 메시지를 결정론적 스텝에서 먼저 받고, 그 다음 주문서로 진입
+        setStep('craftsman');
       } else {
         let replyText: string = data.message;
         if (replyText.includes('[[PHOTO_DONE]]')) {
@@ -690,6 +721,51 @@ export default function ChatPage() {
       console.error('Capture failed:', e);
       return null;
     }
+  };
+
+  // 장인 메시지 스텝 문구 — 12개 언어 (OrderSheet의 messageToCraftsman와 동일 톤)
+  const CRAFTSMAN_STEP_TEXT: Record<Lang, { title: string; subtitle: string; placeholder: string; skip: string; next: string; sending: string }> = {
+    en: { title: '✍️ A message for your craftsman?', subtitle: "Optional — this goes straight to the workbench of the maker who will craft your glove.", placeholder: 'Write your message (optional)', skip: 'Skip', next: 'Continue →', sending: 'Please wait...' },
+    ko: { title: '✍️ 장인에게 남길 말씀이 있나요?', subtitle: '선택 사항이에요. 글러브를 직접 만드는 장인에게 그대로 전달됩니다.', placeholder: '메시지를 입력하세요 (선택)', skip: '건너뛰기', next: '다음 →', sending: '처리 중...' },
+    ja: { title: '✍️ 職人へのメッセージはありますか？', subtitle: '任意です。グラブを作る職人の作業台へ直接届きます。', placeholder: 'メッセージを入力（任意）', skip: 'スキップ', next: '次へ →', sending: '処理中...' },
+    zh: { title: '✍️ 想给工匠留言吗？', subtitle: '选填。将直接送到制作您手套的工匠工作台。', placeholder: '输入留言（选填）', skip: '跳过', next: '继续 →', sending: '处理中...' },
+    es: { title: '✍️ ¿Un mensaje para tu artesano?', subtitle: 'Opcional. Llega directo al taller de quien hará tu guante.', placeholder: 'Escribe tu mensaje (opcional)', skip: 'Omitir', next: 'Continuar →', sending: 'Espera...' },
+    fr: { title: '✍️ Un message pour votre artisan ?', subtitle: "Facultatif. Il arrive directement à l'atelier de celui qui fabriquera votre gant.", placeholder: 'Écrivez votre message (facultatif)', skip: 'Passer', next: 'Continuer →', sending: 'Veuillez patienter...' },
+    de: { title: '✍️ Eine Nachricht an deinen Handwerker?', subtitle: 'Optional. Sie geht direkt an die Werkbank des Herstellers deines Handschuhs.', placeholder: 'Nachricht eingeben (optional)', skip: 'Überspringen', next: 'Weiter →', sending: 'Bitte warten...' },
+    it: { title: '✍️ Un messaggio per il tuo artigiano?', subtitle: 'Facoltativo. Arriva direttamente al banco di chi realizzerà il tuo guanto.', placeholder: 'Scrivi il tuo messaggio (facoltativo)', skip: 'Salta', next: 'Continua →', sending: 'Attendere...' },
+    nl: { title: '✍️ Een bericht voor je vakman?', subtitle: 'Optioneel. Het gaat direct naar de werkbank van de maker van je handschoen.', placeholder: 'Schrijf je bericht (optioneel)', skip: 'Overslaan', next: 'Doorgaan →', sending: 'Even geduld...' },
+    th: { title: '✍️ มีข้อความถึงช่างฝีมือไหม?', subtitle: 'ไม่บังคับ ข้อความจะส่งตรงถึงโต๊ะทำงานของช่างที่ทำถุงมือของคุณ', placeholder: 'เขียนข้อความ (ไม่บังคับ)', skip: 'ข้าม', next: 'ต่อไป →', sending: 'กรุณารอ...' },
+    tl: { title: '✍️ May mensahe ka ba para sa manggagawa?', subtitle: 'Opsyonal. Direktang mapupunta ito sa gagawa ng iyong glove.', placeholder: 'Isulat ang mensahe (opsyonal)', skip: 'Laktawan', next: 'Magpatuloy →', sending: 'Sandali lang...' },
+    pt: { title: '✍️ Uma mensagem para o seu artesão?', subtitle: 'Opcional. Vai direto para a bancada de quem fará a sua luva.', placeholder: 'Escreva sua mensagem (opcional)', skip: 'Pular', next: 'Continuar →', sending: 'Aguarde...' },
+  };
+
+  // 장인 메시지 수집 완료 → (필요 시 공장용 zh 번역) → 주문서로 진입
+  const proceedWithCraftsman = async (rawMsg: string) => {
+    const msg = rawMsg.trim();
+    const lang = selectedLanguageRef.current || 'en';
+    if (!msg) {
+      setOrderData((prev: any) => (prev ? { ...prev, special_requests: '', special_requests_zh: '' } : prev));
+      setStep('order');
+      return;
+    }
+    setCraftsmanBusy(true);
+    let zh = msg; // 고객 언어가 중국어면 그대로, 번역 실패 시 원문 유지(내용은 최소한 전달)
+    if (lang !== 'zh') {
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ mode: 'translate', text: msg }),
+        });
+        const data = await res.json();
+        if (data && typeof data.zh === 'string' && data.zh.trim()) zh = data.zh.trim();
+      } catch (e) {
+        console.error('[craftsman] translate failed:', e);
+      }
+    }
+    setOrderData((prev: any) => (prev ? { ...prev, special_requests: msg, special_requests_zh: zh } : prev));
+    setCraftsmanBusy(false);
+    setStep('order');
   };
 
   const handleOrderConfirm = async () => {
@@ -829,6 +905,383 @@ export default function ChatPage() {
             </span>
           </button>
         ))}
+      </div>
+    );
+  };
+
+  // 로고 패치 색 팔레트 — 스와치는 정확한 hex를 담고 있어 손님이 "모호하게" 고를 수 없다.
+  // 이름은 영어(전송 메시지에 hex와 함께 실림) → AI가 고객 언어/중국어로 번역해 ORDER_COMPLETE에 기록.
+  const LOGO_PALETTE: { name: string; hex: string }[] = [
+    { name: 'Black', hex: '#1a1a1a' }, { name: 'White', hex: '#ffffff' },
+    { name: 'Navy', hex: '#001f5b' }, { name: 'Red', hex: '#cc0000' },
+    { name: 'Royal Blue', hex: '#4169e1' }, { name: 'Gold', hex: '#c9a84c' },
+    { name: 'Silver', hex: '#c0c0c0' }, { name: 'Tan', hex: '#d2b48c' },
+    { name: 'Brown', hex: '#8b4513' }, { name: 'Green', hex: '#228b22' },
+    { name: 'Orange', hex: '#ff8c00' }, { name: 'Pink', hex: '#ffb6c1' },
+    { name: 'Purple', hex: '#800080' }, { name: 'Cream', hex: '#fffdd0' },
+  ];
+
+  // 로고색 스텝 안내 문구 — 12개 언어 (버튼 라벨은 색 스와치라 언어 무관, 안내 문구만 번역)
+  const LOGO_PICKER_TEXT: Record<Lang, { bg: string; letters: string; back: string }> = {
+    en: { bg: 'Pick the background color', letters: 'Now pick the GN letter color', back: '← Change background' },
+    ko: { bg: '배경색을 선택하세요', letters: 'GN 글자색을 선택하세요', back: '← 배경색 다시 선택' },
+    ja: { bg: '背景色を選んでください', letters: 'GN 文字色を選んでください', back: '← 背景色を選び直す' },
+    zh: { bg: '请选择底色', letters: '请选择 GN 字母颜色', back: '← 重新选择底色' },
+    es: { bg: 'Elige el color de fondo', letters: 'Ahora elige el color de las letras GN', back: '← Cambiar fondo' },
+    fr: { bg: 'Choisissez la couleur de fond', letters: 'Choisissez la couleur des lettres GN', back: '← Changer le fond' },
+    de: { bg: 'Wähle die Hintergrundfarbe', letters: 'Wähle jetzt die GN-Buchstabenfarbe', back: '← Hintergrund ändern' },
+    it: { bg: 'Scegli il colore di sfondo', letters: 'Ora scegli il colore delle lettere GN', back: '← Cambia sfondo' },
+    nl: { bg: 'Kies de achtergrondkleur', letters: 'Kies nu de GN-letterkleur', back: '← Achtergrond wijzigen' },
+    th: { bg: 'เลือกสีพื้นหลัง', letters: 'เลือกสีตัวอักษร GN', back: '← เปลี่ยนสีพื้นหลัง' },
+    tl: { bg: 'Pumili ng kulay ng background', letters: 'Pumili ng kulay ng letrang GN', back: '← Palitan ang background' },
+    pt: { bg: 'Escolha a cor de fundo', letters: 'Agora escolha a cor das letras GN', back: '← Trocar o fundo' },
+  };
+
+  const sendLogoChoice = (bg: { name: string; hex: string }, letters: { name: string; hex: string }) => {
+    setLogoBg(null);
+    sendMessage(`GN logo patch — background: ${bg.name} (${bg.hex}), letters: ${letters.name} (${letters.hex})`);
+  };
+
+  const renderLogoPicker = () => {
+    const lt = LOGO_PICKER_TEXT[selectedLanguage || 'en'];
+    const swatch = (c: { name: string; hex: string }, onClick: () => void) => (
+      <button
+        key={c.hex}
+        onClick={onClick}
+        title={c.name}
+        style={{
+          width: '44px', height: '44px', borderRadius: '10px', cursor: 'pointer',
+          background: c.hex, border: '2px solid #4b5563',
+        }}
+      />
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <GNLogo bgColor={logoBg?.hex || '#e5e7eb'} logoColor="#9ca3af" width={80} height={49} />
+          <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>
+            {logoBg ? lt.letters : lt.bg}
+          </span>
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {!logoBg
+            ? LOGO_PALETTE.map(c => swatch(c, () => setLogoBg(c)))
+            : LOGO_PALETTE.map(c => swatch(c, () => sendLogoChoice(logoBg, c)))}
+        </div>
+        {logoBg && (
+          <button
+            onClick={() => setLogoBg(null)}
+            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9ca3af', fontSize: '12px', cursor: 'pointer', padding: 0 }}
+          >{lt.back}</button>
+        )}
+      </div>
+    );
+  };
+
+  // 손가락 위치 라벨 — 자수/국기 위치 피커 공용. 숫자(#1~#9)는 언어 무관, 라벨만 번역.
+  // Web(#7)/Inner(#9)은 OrderSheet의 LABELS(webLabel/inner)와 동일 번역 사용.
+  type FingerNum = '1' | '2' | '3' | '4' | '5' | '7' | '9';
+  const FINGER_LABELS: Record<Lang, Record<FingerNum, string>> = {
+    en: { '1': 'Thumb', '2': 'Index', '3': 'Middle', '4': 'Ring', '5': 'Pinky', '7': 'Web', '9': 'Inner' },
+    ko: { '1': '엄지', '2': '검지', '3': '중지', '4': '약지', '5': '소지', '7': '웹', '9': '내측' },
+    ja: { '1': '親指', '2': '人差し指', '3': '中指', '4': '薬指', '5': '小指', '7': 'ウェブ', '9': '内側' },
+    zh: { '1': '拇指', '2': '食指', '3': '中指', '4': '无名指', '5': '小指', '7': '网兜', '9': '内侧' },
+    es: { '1': 'Pulgar', '2': 'Índice', '3': 'Medio', '4': 'Anular', '5': 'Meñique', '7': 'Red', '9': 'Interior' },
+    fr: { '1': 'Pouce', '2': 'Index', '3': 'Majeur', '4': 'Annulaire', '5': 'Auriculaire', '7': 'Toile', '9': 'Intérieur' },
+    de: { '1': 'Daumen', '2': 'Zeigefinger', '3': 'Mittelfinger', '4': 'Ringfinger', '5': 'Kleiner Finger', '7': 'Netz', '9': 'Innen' },
+    it: { '1': 'Pollice', '2': 'Indice', '3': 'Medio', '4': 'Anulare', '5': 'Mignolo', '7': 'Web', '9': 'Interno' },
+    nl: { '1': 'Duim', '2': 'Wijsvinger', '3': 'Middelvinger', '4': 'Ringvinger', '5': 'Pink', '7': 'Web', '9': 'Binnen' },
+    th: { '1': 'นิ้วโป้ง', '2': 'นิ้วชี้', '3': 'นิ้วกลาง', '4': 'นิ้วนาง', '5': 'นิ้วก้อย', '7': 'เว็บ', '9': 'ด้านใน' },
+    tl: { '1': 'Hinlalaki', '2': 'Hintuturo', '3': 'Hinlalato', '4': 'Palasingsingan', '5': 'Hinliliit', '7': 'Web', '9': 'Loob' },
+    pt: { '1': 'Polegar', '2': 'Indicador', '3': 'Médio', '4': 'Anelar', '5': 'Mínimo', '7': 'Rede', '9': 'Interno' },
+  };
+
+  const LOC_PICKER_TEXT: Record<Lang, { heading: string; webNameNote: string; webFlagNote: string }> = {
+    en: { heading: 'Where would you like it?', webNameNote: 'The web fits only 2 characters — please choose another position.', webFlagNote: 'The web is too small for a flag — please choose another position.' },
+    ko: { heading: '어느 위치에 자수할까요?', webNameNote: '웹에는 2자까지만 들어가요. 다른 위치를 선택해주세요.', webFlagNote: '웹은 국기를 넣기엔 너무 좁아요. 다른 위치를 선택해주세요.' },
+    ja: { heading: 'どの位置に刺繍しますか？', webNameNote: 'ウェブには2文字までしか入りません。別の位置を選んでください。', webFlagNote: 'ウェブは国旗を入れるには狭すぎます。別の位置を選んでください。' },
+    zh: { heading: '想绣在哪个位置？', webNameNote: '网兜只能容纳2个字符，请选择其他位置。', webFlagNote: '网兜太窄，放不下旗帜，请选择其他位置。' },
+    es: { heading: '¿Dónde lo bordamos?', webNameNote: 'La red solo admite 2 caracteres — elige otra posición.', webFlagNote: 'La red es demasiado pequeña para una bandera — elige otra posición.' },
+    fr: { heading: 'Où le broder ?', webNameNote: "La toile n'accepte que 2 caractères — choisissez un autre emplacement.", webFlagNote: 'La toile est trop petite pour un drapeau — choisissez un autre emplacement.' },
+    de: { heading: 'Wo soll es hin?', webNameNote: 'Ins Netz passen nur 2 Zeichen — bitte wähle eine andere Position.', webFlagNote: 'Das Netz ist zu klein für eine Flagge — bitte wähle eine andere Position.' },
+    it: { heading: 'Dove ricamarlo?', webNameNote: 'La web contiene solo 2 caratteri — scegli un\'altra posizione.', webFlagNote: 'La web è troppo piccola per una bandiera — scegli un\'altra posizione.' },
+    nl: { heading: 'Waar wil je het?', webNameNote: 'In het web passen maar 2 tekens — kies een andere positie.', webFlagNote: 'Het web is te klein voor een vlag — kies een andere positie.' },
+    th: { heading: 'ต้องการปักตรงไหน?', webNameNote: 'เว็บใส่ได้แค่ 2 ตัวอักษร กรุณาเลือกตำแหน่งอื่น', webFlagNote: 'เว็บเล็กเกินไปสำหรับธง กรุณาเลือกตำแหน่งอื่น' },
+    tl: { heading: 'Saan mo gusto?', webNameNote: 'Dalawang karakter lang ang kasya sa web — pumili ng ibang posisyon.', webFlagNote: 'Masyadong maliit ang web para sa bandila — pumili ng ibang posisyon.' },
+    pt: { heading: 'Onde bordar?', webNameNote: 'A rede comporta apenas 2 caracteres — escolha outra posição.', webFlagNote: 'A rede é pequena demais para uma bandeira — escolha outra posição.' },
+  };
+
+  const sendLocationChoice = (n: FingerNum, label: string) => {
+    sendMessage(`${label} (#${n})`);
+  };
+
+  // 언어→기본 국기 1개. es(스페인어)는 중남미가 공유해 대표 국기를 정할 수 없어 null(타이핑만).
+  // pt는 포르투갈 국기 파일이 없어 Brasil로. country는 /flags/<file>.png 파일명과 일치.
+  const DEFAULT_FLAG: Record<Lang, { country: string; label: string } | null> = {
+    en: { country: 'usa', label: 'USA' },
+    ko: { country: 'korea', label: '한국' },
+    ja: { country: 'japan', label: '日本' },
+    zh: { country: 'china', label: '中国' },
+    es: null,
+    fr: { country: 'france', label: 'France' },
+    de: { country: 'germany', label: 'Deutschland' },
+    it: { country: 'italy', label: 'Italia' },
+    nl: { country: 'netherlands', label: 'Nederland' },
+    th: { country: 'thailand', label: 'ไทย' },
+    tl: { country: 'philippines', label: 'Pilipinas' },
+    pt: { country: 'brazil', label: 'Brasil' },
+  };
+
+  const FLAG_PICK_TEXT: Record<Lang, { none: string; typeHint: string }> = {
+    en: { none: 'No flag', typeHint: 'Want a different flag? Type the country or US state name below.' },
+    ko: { none: '국기 없음', typeHint: '다른 국기를 원하면 아래에 나라나 미국 주 이름을 입력하세요.' },
+    ja: { none: '国旗なし', typeHint: '別の国旗をご希望なら、下に国名や米国の州名を入力してください。' },
+    zh: { none: '不要旗帜', typeHint: '想要其他旗帜？请在下方输入国家或美国州名。' },
+    es: { none: 'Sin bandera', typeHint: 'Escribe abajo el nombre del país o estado de EE. UU. para tu bandera.' },
+    fr: { none: 'Pas de drapeau', typeHint: 'Un autre drapeau ? Tapez le nom du pays ou de l’État américain ci-dessous.' },
+    de: { none: 'Keine Flagge', typeHint: 'Andere Flagge? Gib unten den Namen des Landes oder US-Bundesstaats ein.' },
+    it: { none: 'Nessuna bandiera', typeHint: 'Un’altra bandiera? Scrivi qui sotto il nome del paese o stato USA.' },
+    nl: { none: 'Geen vlag', typeHint: 'Andere vlag? Typ hieronder de naam van het land of de Amerikaanse staat.' },
+    th: { none: 'ไม่เอาธง', typeHint: 'ต้องการธงอื่น? พิมพ์ชื่อประเทศหรือรัฐของสหรัฐฯ ด้านล่าง' },
+    tl: { none: 'Walang bandila', typeHint: 'Ibang bandila? I-type sa ibaba ang bansa o estado ng US.' },
+    pt: { none: 'Sem bandeira', typeHint: 'Outra bandeira? Digite abaixo o nome do país ou estado dos EUA.' },
+  };
+
+  const sendFlagChoice = (country: string) => sendMessage(`Flag: ${country}`);
+  const sendNoFlag = () => sendMessage('No flag');
+
+  const renderFlagPicker = () => {
+    const lang = selectedLanguage || 'en';
+    const def = DEFAULT_FLAG[lang];
+    const ft = FLAG_PICK_TEXT[lang];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {def && (
+            <button
+              onClick={() => sendFlagChoice(def.country)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                background: '#374151', border: '2px solid #4b5563', borderRadius: '10px',
+                padding: '8px 12px', cursor: 'pointer',
+              }}
+            >
+              <img
+                src={`/flags/${def.country}.png`}
+                alt={def.label}
+                style={{ width: '32px', height: '22px', objectFit: 'cover', borderRadius: '2px', border: '0.5px solid #6b7280' }}
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+              <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{def.label}</span>
+            </button>
+          )}
+          <button
+            onClick={sendNoFlag}
+            style={{
+              background: '#1f2937', border: '2px solid #4b5563', borderRadius: '10px',
+              padding: '8px 12px', cursor: 'pointer', fontSize: '13px', fontWeight: 700, color: '#d1d5db',
+            }}
+          >{ft.none}</button>
+        </div>
+        <span style={{ fontSize: '12px', color: '#9ca3af' }}>{ft.typeHint}</span>
+      </div>
+    );
+  };
+
+  // 진입 언어 → 기본 선택 국가(ISO2). es(스페인어)는 중남미 공유라 기본값 없음.
+  const LANG_TO_ISO: Record<Lang, string> = {
+    en: 'US', ko: 'KR', ja: 'JP', zh: 'CN', es: '', fr: 'FR',
+    de: 'DE', it: 'IT', nl: 'NL', th: 'TH', tl: 'PH', pt: 'BR',
+  };
+
+  // 국가 드롭다운(영문명) — 검증 지원국 + 주요 배송국. 그 외는 'OTHER'(검증 스킵).
+  const COUNTRY_OPTIONS: { code: string; name: string }[] = [
+    { code: 'KR', name: 'South Korea' }, { code: 'US', name: 'United States' }, { code: 'JP', name: 'Japan' },
+    { code: 'CN', name: 'China' }, { code: 'TW', name: 'Taiwan' }, { code: 'HK', name: 'Hong Kong' },
+    { code: 'DE', name: 'Germany' }, { code: 'FR', name: 'France' }, { code: 'ES', name: 'Spain' },
+    { code: 'IT', name: 'Italy' }, { code: 'NL', name: 'Netherlands' }, { code: 'GB', name: 'United Kingdom' },
+    { code: 'PT', name: 'Portugal' }, { code: 'PH', name: 'Philippines' }, { code: 'BR', name: 'Brazil' },
+    { code: 'MX', name: 'Mexico' }, { code: 'CA', name: 'Canada' }, { code: 'AU', name: 'Australia' },
+    { code: 'CH', name: 'Switzerland' }, { code: 'AT', name: 'Austria' }, { code: 'BE', name: 'Belgium' },
+    { code: 'SE', name: 'Sweden' }, { code: 'PL', name: 'Poland' }, { code: 'TH', name: 'Thailand' },
+    { code: 'IN', name: 'India' }, { code: 'ID', name: 'Indonesia' }, { code: 'VN', name: 'Vietnam' },
+    { code: 'SG', name: 'Singapore' }, { code: 'MY', name: 'Malaysia' }, { code: 'NZ', name: 'New Zealand' },
+    { code: 'DO', name: 'Dominican Republic' }, { code: 'VE', name: 'Venezuela' }, { code: 'CO', name: 'Colombia' },
+    { code: 'PR', name: 'Puerto Rico' }, { code: 'CU', name: 'Cuba' }, { code: 'AR', name: 'Argentina' },
+  ];
+  const COUNTRY_NAME: Record<string, string> = Object.fromEntries(COUNTRY_OPTIONS.map(c => [c.code, c.name]));
+
+  const CUSTOMER_FORM_TEXT: Record<Lang, {
+    heading: string; name: string; phone: string; country: string; countryOther: string;
+    street: string; city: string; state: string; postal: string; submit: string; checking: string;
+    errRequired: string; errAddress: string; errCity: string; other: string;
+  }> = {
+    en: { heading: 'Shipping details', name: 'Full name', phone: 'Phone', country: 'Country', countryOther: 'Enter your country', street: 'Street address', city: 'City', state: 'State / Province (optional)', postal: 'Postal / ZIP code', submit: 'Continue →', checking: 'Checking address...', errRequired: 'Please fill in all required fields.', errAddress: "The postal code and address don't match. Please double-check.", errCity: 'The city for this postal code is "{X}". Please check the city.', other: 'Other' },
+    ko: { heading: '배송 정보', name: '이름', phone: '전화번호', country: '국가', countryOther: '국가를 입력하세요', street: '상세 주소', city: '도시', state: '시/도 (선택)', postal: '우편번호', submit: '다음 →', checking: '주소 확인 중...', errRequired: '필수 항목을 모두 입력해주세요.', errAddress: '우편번호와 주소가 맞지 않습니다. 다시 확인해주세요.', errCity: '이 우편번호의 도시는 "{X}"입니다. 도시명을 확인해주세요.', other: '기타' },
+    ja: { heading: '配送情報', name: 'お名前', phone: '電話番号', country: '国', countryOther: '国名を入力', street: '住所', city: '市区町村', state: '都道府県(任意)', postal: '郵便番号', submit: '次へ →', checking: '住所を確認中...', errRequired: '必須項目をすべて入力してください。', errAddress: '郵便番号と住所が一致しません。ご確認ください。', errCity: 'この郵便番号の市区町村は「{X}」です。ご確認ください。', other: 'その他' },
+    zh: { heading: '配送信息', name: '姓名', phone: '电话', country: '国家', countryOther: '请输入国家', street: '详细地址', city: '城市', state: '省/州(选填)', postal: '邮政编码', submit: '继续 →', checking: '正在核对地址...', errRequired: '请填写所有必填项。', errAddress: '邮政编码与地址不匹配，请再次确认。', errCity: '该邮政编码对应的城市是"{X}"，请检查城市名。', other: '其他' },
+    es: { heading: 'Datos de envío', name: 'Nombre completo', phone: 'Teléfono', country: 'País', countryOther: 'Escribe tu país', street: 'Dirección', city: 'Ciudad', state: 'Estado / Provincia (opcional)', postal: 'Código postal', submit: 'Continuar →', checking: 'Verificando dirección...', errRequired: 'Completa todos los campos obligatorios.', errAddress: 'El código postal y la dirección no coinciden. Verifícalos.', errCity: 'La ciudad de este código postal es "{X}". Revisa la ciudad.', other: 'Otro' },
+    fr: { heading: 'Livraison', name: 'Nom complet', phone: 'Téléphone', country: 'Pays', countryOther: 'Saisissez votre pays', street: 'Adresse', city: 'Ville', state: 'Région (facultatif)', postal: 'Code postal', submit: 'Continuer →', checking: "Vérification de l'adresse...", errRequired: 'Veuillez remplir tous les champs obligatoires.', errAddress: 'Le code postal et l’adresse ne correspondent pas. Vérifiez.', errCity: 'La ville de ce code postal est « {X} ». Vérifiez la ville.', other: 'Autre' },
+    de: { heading: 'Lieferdaten', name: 'Vollständiger Name', phone: 'Telefon', country: 'Land', countryOther: 'Land eingeben', street: 'Straße und Nr.', city: 'Stadt', state: 'Bundesland (optional)', postal: 'Postleitzahl', submit: 'Weiter →', checking: 'Adresse wird geprüft...', errRequired: 'Bitte fülle alle Pflichtfelder aus.', errAddress: 'PLZ und Adresse passen nicht zusammen. Bitte prüfen.', errCity: 'Die Stadt zu dieser PLZ ist „{X}“. Bitte prüfe die Stadt.', other: 'Andere' },
+    it: { heading: 'Dati di spedizione', name: 'Nome completo', phone: 'Telefono', country: 'Paese', countryOther: 'Inserisci il paese', street: 'Indirizzo', city: 'Città', state: 'Provincia (facoltativo)', postal: 'CAP', submit: 'Continua →', checking: "Verifica dell'indirizzo...", errRequired: 'Compila tutti i campi obbligatori.', errAddress: 'CAP e indirizzo non corrispondono. Controlla.', errCity: 'La città di questo CAP è "{X}". Controlla la città.', other: 'Altro' },
+    nl: { heading: 'Verzendgegevens', name: 'Volledige naam', phone: 'Telefoon', country: 'Land', countryOther: 'Voer je land in', street: 'Adres', city: 'Plaats', state: 'Provincie (optioneel)', postal: 'Postcode', submit: 'Doorgaan →', checking: 'Adres controleren...', errRequired: 'Vul alle verplichte velden in.', errAddress: 'Postcode en adres komen niet overeen. Controleer het.', errCity: 'De plaats bij deze postcode is "{X}". Controleer de plaats.', other: 'Anders' },
+    th: { heading: 'ข้อมูลจัดส่ง', name: 'ชื่อ-นามสกุล', phone: 'โทรศัพท์', country: 'ประเทศ', countryOther: 'กรอกประเทศ', street: 'ที่อยู่', city: 'เมือง', state: 'รัฐ/จังหวัด (ไม่บังคับ)', postal: 'รหัสไปรษณีย์', submit: 'ต่อไป →', checking: 'กำลังตรวจสอบที่อยู่...', errRequired: 'กรุณากรอกข้อมูลที่จำเป็นทั้งหมด', errAddress: 'รหัสไปรษณีย์กับที่อยู่ไม่ตรงกัน กรุณาตรวจสอบ', errCity: 'เมืองของรหัสไปรษณีย์นี้คือ "{X}" กรุณาตรวจสอบ', other: 'อื่นๆ' },
+    tl: { heading: 'Detalye ng padala', name: 'Buong pangalan', phone: 'Telepono', country: 'Bansa', countryOther: 'Ilagay ang bansa', street: 'Address', city: 'Lungsod', state: 'Estado / Probinsya (opsyonal)', postal: 'Postal / ZIP code', submit: 'Magpatuloy →', checking: 'Sinusuri ang address...', errRequired: 'Punan ang lahat ng kinakailangang field.', errAddress: 'Hindi tugma ang postal code at address. Pakisuri.', errCity: 'Ang lungsod para sa postal code na ito ay "{X}". Pakisuri.', other: 'Iba pa' },
+    pt: { heading: 'Dados de envio', name: 'Nome completo', phone: 'Telefone', country: 'País', countryOther: 'Digite seu país', street: 'Endereço', city: 'Cidade', state: 'Estado (opcional)', postal: 'CEP / Código postal', submit: 'Continuar →', checking: 'Verificando endereço...', errRequired: 'Preencha todos os campos obrigatórios.', errAddress: 'O código postal e o endereço não coincidem. Verifique.', errCity: 'A cidade deste código postal é "{X}". Verifique a cidade.', other: 'Outro' },
+  };
+
+  const submitCustomerForm = async () => {
+    const lang = selectedLanguage || 'en';
+    const ct = CUSTOMER_FORM_TEXT[lang];
+    setCfError(null);
+    const country = cf.country || LANG_TO_ISO[lang] || '';
+    const missing = !cf.name.trim() || !cf.phone.trim() || !cf.street.trim() || !cf.city.trim() || !cf.postal.trim()
+      || !country || (country === 'OTHER' && !cf.countryOther.trim());
+    if (missing) { setCfError(ct.errRequired); return; }
+
+    const countryCode = country === 'OTHER' ? '' : country;
+    const countryName = country === 'OTHER' ? cf.countryOther.trim() : (COUNTRY_NAME[country] || country);
+
+    setCfValidating(true);
+    try {
+      const res = await fetch('/api/validate-address', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ countryCode, postal: cf.postal, city: cf.city, street: cf.street }),
+      });
+      const v = await res.json();
+      if (v && v.ok === false) {
+        if (v.reason === 'city_mismatch' && Array.isArray(v.expected) && v.expected.length) {
+          setCfError(ct.errCity.replace('{X}', v.expected.join(', ')));
+        } else {
+          setCfError(ct.errAddress);
+        }
+        setCfValidating(false);
+        return;
+      }
+    } catch {
+      // 검증 API 자체가 실패하면 주문을 막지 않는다(최종 주문서 확인이 백스톱)
+    }
+    setCfValidating(false);
+    const addr = [cf.street.trim(), cf.city.trim(), cf.state.trim(), cf.postal.trim()].filter(Boolean).join(', ');
+    const msg = `[CUSTOMER_INFO]\nName: ${cf.name.trim()}\nPhone: ${cf.phone.trim()}\nCountry: ${countryName} (${countryCode || 'other'})\nAddress: ${addr}`;
+    sendMessage(msg);
+  };
+
+  const renderCustomerForm = () => {
+    const lang = selectedLanguage || 'en';
+    const ct = CUSTOMER_FORM_TEXT[lang];
+    const countryVal = cf.country || LANG_TO_ISO[lang] || '';
+    const inputStyle: React.CSSProperties = {
+      width: '100%', background: '#111827', border: '1px solid #4b5563', borderRadius: '8px',
+      padding: '10px 12px', color: '#fff', fontSize: '14px',
+    };
+    const field = (label: string, node: React.ReactNode) => (
+      <label style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+        <span style={{ fontSize: '12px', color: '#9ca3af' }}>{label}</span>
+        {node}
+      </label>
+    );
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', maxWidth: '420px' }}>
+        <span style={{ fontSize: '14px', color: '#facc15', fontWeight: 700 }}>{ct.heading}</span>
+        {field(ct.name, <input style={inputStyle} value={cf.name} onChange={e => setCf({ ...cf, name: e.target.value })} />)}
+        {field(ct.phone, <input style={inputStyle} value={cf.phone} onChange={e => setCf({ ...cf, phone: e.target.value })} inputMode="tel" />)}
+        {field(ct.country, (
+          <select style={inputStyle} value={countryVal} onChange={e => setCf({ ...cf, country: e.target.value })}>
+            <option value="" disabled>—</option>
+            {COUNTRY_OPTIONS.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+            <option value="OTHER">{ct.other}</option>
+          </select>
+        ))}
+        {countryVal === 'OTHER' && field(ct.countryOther, <input style={inputStyle} value={cf.countryOther} onChange={e => setCf({ ...cf, countryOther: e.target.value })} />)}
+        {field(ct.street, <input style={inputStyle} value={cf.street} onChange={e => setCf({ ...cf, street: e.target.value })} />)}
+        {field(ct.city, <input style={inputStyle} value={cf.city} onChange={e => setCf({ ...cf, city: e.target.value })} />)}
+        {field(ct.state, <input style={inputStyle} value={cf.state} onChange={e => setCf({ ...cf, state: e.target.value })} />)}
+        {field(ct.postal, <input style={inputStyle} value={cf.postal} onChange={e => setCf({ ...cf, postal: e.target.value })} />)}
+        {cfError && <span style={{ fontSize: '13px', color: '#f87171' }}>{cfError}</span>}
+        <button
+          onClick={submitCustomerForm}
+          disabled={cfValidating}
+          style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '12px', cursor: cfValidating ? 'not-allowed' : 'pointer', opacity: cfValidating ? 0.6 : 1, marginTop: '4px' }}
+        >{cfValidating ? ct.checking : ct.submit}</button>
+      </div>
+    );
+  };
+
+  // 자수/국기 위치 피커 — context('name'|'flag')와 텍스트 길이로 웹(#7) 가용성을 결정.
+  // 웹은 투수 전용 + (이름) 2자 초과 시 비활성 + (국기) 항상 비활성.
+  const renderLocationPicker = (context: 'name' | 'flag', text: string) => {
+    const lang = selectedLanguage || 'en';
+    const labels = FINGER_LABELS[lang];
+    const lt = LOC_PICKER_TEXT[lang];
+    const isPitcher = specAnswersRef.current.position === 'pitcher';
+    const textLen = Array.from((text || '').trim()).length;
+    const nums: FingerNum[] = isPitcher ? ['1', '2', '3', '4', '5', '7', '9'] : ['1', '2', '3', '4', '5', '9'];
+    const webBlocked = context === 'flag' || (context === 'name' && textLen > 2);
+    const isDisabled = (n: FingerNum) => n === '7' && webBlocked;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+        <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>{lt.heading}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {nums.map(n => {
+            const disabled = isDisabled(n);
+            return (
+              <button
+                key={n}
+                onClick={() => { if (!disabled) sendLocationChoice(n, labels[n]); }}
+                disabled={disabled}
+                style={{
+                  background: disabled ? '#1f2937' : '#374151',
+                  border: disabled ? '2px solid #374151' : '2px solid #4b5563',
+                  borderRadius: '10px', padding: '8px 12px',
+                  cursor: disabled ? 'not-allowed' : 'pointer',
+                  opacity: disabled ? 0.4 : 1,
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', minWidth: '56px',
+                }}
+              >
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{labels[n]}</span>
+                <span style={{ fontSize: '10px', color: '#9ca3af' }}>#{n}</span>
+              </button>
+            );
+          })}
+        </div>
+        {nums.includes('7') && webBlocked && (
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>{context === 'flag' ? lt.webFlagNote : lt.webNameNote}</span>
+        )}
+      </div>
+    );
+  };
+
+  // 변경 여부 질문 — "그대로 진행"(결정론적) vs "바꿀 부분 있어요"(자유입력→AI 해석)
+  const CHANGES_ASK_TEXT: Record<Lang, { keep: string; change: string }> = {
+    en: { keep: 'Proceed as-is', change: 'I have changes' },
+    ko: { keep: '그대로 진행', change: '바꿀 부분 있어요' },
+    ja: { keep: 'このまま進める', change: '変更したい' },
+    zh: { keep: '就这样进行', change: '我想修改' },
+    es: { keep: 'Continuar así', change: 'Quiero cambios' },
+    fr: { keep: 'Continuer ainsi', change: 'Je veux modifier' },
+    de: { keep: 'So fortfahren', change: 'Ich möchte ändern' },
+    it: { keep: 'Procedi così', change: 'Voglio modifiche' },
+    nl: { keep: 'Zo doorgaan', change: 'Ik wil wijzigen' },
+    th: { keep: 'ดำเนินการตามนี้', change: 'ต้องการแก้ไข' },
+    tl: { keep: 'Ituloy nang ganito', change: 'May babaguhin' },
+    pt: { keep: 'Continuar assim', change: 'Quero mudar' },
+  };
+
+  const sendNoChanges = () => sendMessage('No changes');
+
+  const renderChangesAsk = () => {
+    const t = CHANGES_ASK_TEXT[selectedLanguage || 'en'];
+    return (
+      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+        <button
+          onClick={sendNoChanges}
+          style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
+        >{t.keep}</button>
+        <button
+          onClick={() => textareaRef.current?.focus()}
+          style={{ background: '#374151', color: '#d1d5db', fontWeight: 700, border: '2px solid #4b5563', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
+        >{t.change}</button>
       </div>
     );
   };
@@ -1279,6 +1732,33 @@ export default function ChatPage() {
     const hasFontPick = !!fontPickMatch || cleanContent.includes('[FONT_PICK]');
     cleanContent = cleanContent.replace(/\[FONT_PICK:[^\]]*\]/g, '').replace(/\[FONT_PICK\]/g, '').trim();
 
+    // [LOGO_PICK] 태그 감지 — GN 로고 배경/글자색 스와치 피커
+    const hasLogoPick = cleanContent.includes('[LOGO_PICK]');
+    cleanContent = cleanContent.replace(/\[LOGO_PICK\]/g, '').trim();
+
+    // [NAME_LOC:text] / [FLAG_LOC] 태그 감지 — 손가락 위치 피커
+    const nameLocMatch = cleanContent.match(/\[NAME_LOC:([^\]]*)\]/);
+    const nameLocText = nameLocMatch ? nameLocMatch[1].trim() : '';
+    const hasNameLoc = !!nameLocMatch || cleanContent.includes('[NAME_LOC]');
+    cleanContent = cleanContent.replace(/\[NAME_LOC:[^\]]*\]/g, '').replace(/\[NAME_LOC\]/g, '').trim();
+    const hasFlagLoc = cleanContent.includes('[FLAG_LOC]');
+    cleanContent = cleanContent.replace(/\[FLAG_LOC\]/g, '').trim();
+
+    // [FLAG_PICK] 태그 감지 — 국기 나라 선택(기본 국기 1개 + 없음 + 타이핑)
+    const hasFlagPick = cleanContent.includes('[FLAG_PICK]');
+    cleanContent = cleanContent.replace(/\[FLAG_PICK\]/g, '').trim();
+
+    // [CUSTOMER_FORM] 태그 감지 — 이름/전화/주소 폼 + 주소 검증
+    const hasCustomerForm = cleanContent.includes('[CUSTOMER_FORM]');
+    cleanContent = cleanContent.replace(/\[CUSTOMER_FORM\]/g, '').trim();
+
+    // [CHANGES_ASK] 태그 감지 — "그대로 진행 / 바꿀 부분 있어요" 버튼
+    const hasChangesAsk = cleanContent.includes('[CHANGES_ASK]');
+    cleanContent = cleanContent.replace(/\[CHANGES_ASK\]/g, '').trim();
+
+    // 마크다운 미렌더 — AI가 넣은 **굵게** 마커가 그대로 노출되므로 제거
+    cleanContent = cleanContent.replace(/\*\*/g, '');
+
     // [SHOW_IMAGE: ...] 파싱
     const parts = cleanContent.split(/\[SHOW_IMAGE: ([^\]]+)\]/g);
     return (
@@ -1298,6 +1778,12 @@ export default function ChatPage() {
           return <span key={i} style={{ whiteSpace: 'pre-wrap' }}>{part}</span>;
         })}
         {hasFontPick && renderFontPicker(fontPickText)}
+        {hasLogoPick && renderLogoPicker()}
+        {hasNameLoc && renderLocationPicker('name', nameLocText)}
+        {hasFlagPick && renderFlagPicker()}
+        {hasFlagLoc && renderLocationPicker('flag', '')}
+        {hasCustomerForm && renderCustomerForm()}
+        {hasChangesAsk && renderChangesAsk()}
       </>
     );
   };
@@ -1596,7 +2082,7 @@ export default function ChatPage() {
             {introMessages.map((msg, i) => (
               <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                 <div className={`max-w-xs lg:max-w-md p-3 rounded-2xl whitespace-pre-wrap ${msg.role === 'user' ? 'bg-yellow-400 text-black' : 'bg-gray-800'}`}>
-                  {msg.content}
+                  {msg.content.replace(/\*\*/g, '')}
                 </div>
               </div>
             ))}
@@ -1714,6 +2200,40 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      {/* 장인 메시지 — AI가 아니라 앱이 결정론적으로 수집하는 고정 스텝 */}
+      {step === 'craftsman' && orderData && (() => {
+        const ct = CRAFTSMAN_STEP_TEXT[selectedLanguage || 'en'];
+        return (
+          <div className="w-full max-w-lg">
+            <div style={{ background: '#1f2937', border: '1px solid #374151', borderRadius: '16px', padding: '28px' }}>
+              <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '8px' }}>{ct.title}</div>
+              <div style={{ fontSize: '14px', color: '#9ca3af', marginBottom: '16px', lineHeight: 1.6 }}>{ct.subtitle}</div>
+              <textarea
+                value={craftsmanMsg}
+                onChange={e => setCraftsmanMsg(e.target.value)}
+                placeholder={ct.placeholder}
+                rows={4}
+                disabled={craftsmanBusy}
+                className="w-full bg-gray-800 rounded-lg p-3 outline-none resize-none leading-relaxed"
+                style={{ border: '1px solid #4b5563', color: '#fff' }}
+              />
+              <div style={{ display: 'flex', gap: '10px', marginTop: '16px' }}>
+                <button
+                  onClick={() => proceedWithCraftsman('')}
+                  disabled={craftsmanBusy}
+                  style={{ flex: 1, background: '#374151', color: '#d1d5db', fontWeight: 700, border: '1px solid #4b5563', borderRadius: '10px', padding: '12px', cursor: craftsmanBusy ? 'not-allowed' : 'pointer' }}
+                >{ct.skip}</button>
+                <button
+                  onClick={() => proceedWithCraftsman(craftsmanMsg)}
+                  disabled={craftsmanBusy}
+                  style={{ flex: 2, background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '12px', cursor: craftsmanBusy ? 'not-allowed' : 'pointer', opacity: craftsmanBusy ? 0.6 : 1 }}
+                >{craftsmanBusy ? ct.sending : ct.next}</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* 주문서 */}
       {step === 'order' && orderData && (

@@ -300,7 +300,7 @@ function outlineShadow(color: string, w: number): string {
   ].join(', ');
 }
 
-function GNLogo({ bgColor, logoColor, width = 100, height = 61 }: {
+export function GNLogo({ bgColor, logoColor, width = 100, height = 61 }: {
   bgColor: string; logoColor: string; width?: number; height?: number;
 }) {
   return (
