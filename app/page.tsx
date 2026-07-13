@@ -36,6 +36,10 @@ export default function ChatPage() {
   // 로고 패치 색 — [LOGO_PICK] 마커가 오면 스와치 팔레트로 배경색→글자색을 고름(모호한 답 원천 차단).
   // 배경색을 먼저 고르면 여기에 저장하고, 글자색까지 고르면 AI에 정확한 이름+hex를 전송.
   const [logoBg, setLogoBg] = useState<{ name: string; hex: string } | null>(null);
+  const [logoLetter, setLogoLetter] = useState<{ name: string; hex: string } | null>(null);
+  // 변경 요청 루프 — 확정된 변경 횟수(최대 3)와, "변경할게요" 후 입력 유도 중인지 여부
+  const [changeCount, setChangeCount] = useState(0);
+  const [changeInputMode, setChangeInputMode] = useState(false);
   // 고객정보 폼 — [CUSTOMER_FORM] 마커가 오면 결정론적 폼으로 이름/전화/주소를 받고,
   // 제출 시 /api/validate-address로 우편번호↔주소를 검증한 뒤에만 AI로 전송.
   const [cf, setCf] = useState({ name: '', phone: '', country: '', countryOther: '', street: '', city: '', state: '', postal: '' });
@@ -63,6 +67,10 @@ export default function ChatPage() {
   const [specNudge, setSpecNudge] = useState(false);
   // FLOW B(사진 업로드)는 첫 API 응답(경고+색상 코멘트)이 온 직후에 위저드를 시작해야 하므로 대기 플래그로 표시
   const specWizardPendingRef = useRef(false);
+  // 사진 분석 첫 응답을 기다리는 동안, 위저드로 바로 넘어가지 않고 "시작할까요?" 확인 게이트를 거친다.
+  // preWizardGateRef: 위저드 시작 전(게이트 활성) 구간 표시. awaitingStartConfirm: 게이트 UI 렌더 여부.
+  const preWizardGateRef = useRef(false);
+  const [awaitingStartConfirm, setAwaitingStartConfirm] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -645,10 +653,15 @@ export default function ChatPage() {
         }
         setMessages([...newMessages, { role: 'assistant', content: replyText }]);
 
-        // FLOW B: 사진 업로드 후 첫 응답(경고+색상 코멘트)을 받은 직후 스펙 위저드 시작
+        // FLOW B: 사진 업로드 후 첫 응답(경고+색상 코멘트)을 받으면 곧바로 위저드로 넘어가지 않고
+        // "시작할까요?" 확인 게이트를 먼저 보여준다. 손님이 다른 질문을 타이핑해도(게이트 유지 중)
+        // 답변을 받을 때마다 게이트를 다시 띄운다.
         if (specWizardPendingRef.current) {
           specWizardPendingRef.current = false;
-          setSpecStep('sport');
+          preWizardGateRef.current = true;
+        }
+        if (preWizardGateRef.current) {
+          setAwaitingStartConfirm(true);
         }
       }
     } catch (err) {
@@ -670,6 +683,11 @@ export default function ChatPage() {
       setInput('');
       return;
     }
+
+    // 손님이 게이트를 무시하고 다른 질문을 타이핑하는 경우 — 답변이 올 때까지 게이트는 숨긴다(응답 후 재노출).
+    if (awaitingStartConfirm) setAwaitingStartConfirm(false);
+    // 변경 내용을 타이핑해 보내면 "무엇을 변경?" 안내는 닫는다(AI가 재확인 질문으로 이어받음).
+    if (changeInputMode) setChangeInputMode(false);
 
     const userMessage: Message = {
       role: 'user',
@@ -787,8 +805,8 @@ export default function ChatPage() {
       const data = await res.json();
       if (data.success) {
         setResultModal({ type: 'success', title: t.successTitle, body: t.successBody(data.orderId), okLabel: t.okLabel });
-        // 전체 초기화
-        setStep('select');
+        // 전체 초기화 — 언어도 리셋하므로 select(영어 기본값)가 아니라 언어 선택 화면으로 돌아간다
+        setStep('language');
         setMessages([]);
         setOrderData(null);
         setImages([]);
@@ -797,6 +815,8 @@ export default function ChatPage() {
         pinnedGloveRef.current = null;
         selectedGloveRawRef.current = null;
         photoNeededRef.current = true;
+        setChangeCount(0);
+        setChangeInputMode(false);
         selectedLanguageRef.current = null;
         setSelectedLanguage(null);
         setUploadedImagesDisplay([]);
@@ -914,66 +934,169 @@ export default function ChatPage() {
   const LOGO_PALETTE: { name: string; hex: string }[] = [
     { name: 'Black', hex: '#1a1a1a' }, { name: 'White', hex: '#ffffff' },
     { name: 'Navy', hex: '#001f5b' }, { name: 'Red', hex: '#cc0000' },
-    { name: 'Royal Blue', hex: '#4169e1' }, { name: 'Gold', hex: '#c9a84c' },
-    { name: 'Silver', hex: '#c0c0c0' }, { name: 'Tan', hex: '#d2b48c' },
-    { name: 'Brown', hex: '#8b4513' }, { name: 'Green', hex: '#228b22' },
-    { name: 'Orange', hex: '#ff8c00' }, { name: 'Pink', hex: '#ffb6c1' },
-    { name: 'Purple', hex: '#800080' }, { name: 'Cream', hex: '#fffdd0' },
+    { name: 'Royal Blue', hex: '#4169e1' }, { name: 'Sky Blue', hex: '#87ceeb' },
+    { name: 'Teal', hex: '#008080' }, { name: 'Green', hex: '#228b22' },
+    { name: 'Mint', hex: '#98ff98' }, { name: 'Gold', hex: '#c9a84c' },
+    { name: 'Yellow', hex: '#ffd21f' }, { name: 'Orange', hex: '#ff8c00' },
+    { name: 'Coral', hex: '#ff7f50' }, { name: 'Pink', hex: '#ffb6c1' },
+    { name: 'Purple', hex: '#800080' }, { name: 'Lavender', hex: '#e6e6fa' },
+    { name: 'Maroon', hex: '#800000' }, { name: 'Burgundy', hex: '#800020' },
+    { name: 'Brown', hex: '#8b4513' }, { name: 'Caramel', hex: '#c68642' },
+    { name: 'Tan', hex: '#d2b48c' }, { name: 'Cream', hex: '#fffdd0' },
+    { name: 'Silver', hex: '#c0c0c0' }, { name: 'Gray', hex: '#808080' },
   ];
 
+  // 색 이름 12개 언어 — 모니터/기기 색재현 차이·색각이상(색맹)으로 인한 오선택을 줄이려
+  // 스와치 밑에 색 이름을 함께 표기(표시는 고객 언어로, AI 전송 메시지는 영어 이름 유지).
+  const COLOR_NAME_I18N: Record<Lang, Record<string, string>> = {
+    en: { Black: 'Black', White: 'White', Navy: 'Navy', Red: 'Red', 'Royal Blue': 'Royal Blue', 'Sky Blue': 'Sky Blue', Teal: 'Teal', Green: 'Green', Mint: 'Mint', Gold: 'Gold', Yellow: 'Yellow', Orange: 'Orange', Coral: 'Coral', Pink: 'Pink', Purple: 'Purple', Lavender: 'Lavender', Maroon: 'Maroon', Burgundy: 'Burgundy', Brown: 'Brown', Caramel: 'Caramel', Tan: 'Tan', Cream: 'Cream', Silver: 'Silver', Gray: 'Gray' },
+    ko: { Black: '검정', White: '흰색', Navy: '네이비', Red: '빨강', 'Royal Blue': '로열블루', 'Sky Blue': '하늘색', Teal: '청록', Green: '초록', Mint: '민트', Gold: '골드', Yellow: '노랑', Orange: '주황', Coral: '코랄', Pink: '분홍', Purple: '보라', Lavender: '라벤더', Maroon: '마룬', Burgundy: '버건디', Brown: '갈색', Caramel: '캐러멜', Tan: '탠', Cream: '크림', Silver: '실버', Gray: '회색' },
+    ja: { Black: '黒', White: '白', Navy: 'ネイビー', Red: '赤', 'Royal Blue': 'ロイヤルブルー', 'Sky Blue': 'スカイブルー', Teal: 'ティール', Green: '緑', Mint: 'ミント', Gold: 'ゴールド', Yellow: '黄', Orange: 'オレンジ', Coral: 'コーラル', Pink: 'ピンク', Purple: '紫', Lavender: 'ラベンダー', Maroon: 'マルーン', Burgundy: 'バーガンディ', Brown: '茶', Caramel: 'キャラメル', Tan: 'タン', Cream: 'クリーム', Silver: 'シルバー', Gray: 'グレー' },
+    zh: { Black: '黑色', White: '白色', Navy: '藏青', Red: '红色', 'Royal Blue': '宝蓝', 'Sky Blue': '天蓝', Teal: '蓝绿', Green: '绿色', Mint: '薄荷绿', Gold: '金色', Yellow: '黄色', Orange: '橙色', Coral: '珊瑚色', Pink: '粉色', Purple: '紫色', Lavender: '淡紫', Maroon: '栗色', Burgundy: '酒红', Brown: '棕色', Caramel: '焦糖色', Tan: '棕褐', Cream: '米色', Silver: '银色', Gray: '灰色' },
+    es: { Black: 'Negro', White: 'Blanco', Navy: 'Azul marino', Red: 'Rojo', 'Royal Blue': 'Azul rey', 'Sky Blue': 'Celeste', Teal: 'Verde azulado', Green: 'Verde', Mint: 'Menta', Gold: 'Dorado', Yellow: 'Amarillo', Orange: 'Naranja', Coral: 'Coral', Pink: 'Rosa', Purple: 'Morado', Lavender: 'Lavanda', Maroon: 'Granate', Burgundy: 'Burdeos', Brown: 'Marrón', Caramel: 'Caramelo', Tan: 'Habano', Cream: 'Crema', Silver: 'Plata', Gray: 'Gris' },
+    fr: { Black: 'Noir', White: 'Blanc', Navy: 'Bleu marine', Red: 'Rouge', 'Royal Blue': 'Bleu roi', 'Sky Blue': 'Bleu ciel', Teal: 'Sarcelle', Green: 'Vert', Mint: 'Menthe', Gold: 'Doré', Yellow: 'Jaune', Orange: 'Orange', Coral: 'Corail', Pink: 'Rose', Purple: 'Violet', Lavender: 'Lavande', Maroon: 'Marron', Burgundy: 'Bordeaux', Brown: 'Brun', Caramel: 'Caramel', Tan: 'Fauve', Cream: 'Crème', Silver: 'Argent', Gray: 'Gris' },
+    de: { Black: 'Schwarz', White: 'Weiß', Navy: 'Marineblau', Red: 'Rot', 'Royal Blue': 'Königsblau', 'Sky Blue': 'Himmelblau', Teal: 'Blaugrün', Green: 'Grün', Mint: 'Mint', Gold: 'Gold', Yellow: 'Gelb', Orange: 'Orange', Coral: 'Koralle', Pink: 'Rosa', Purple: 'Lila', Lavender: 'Lavendel', Maroon: 'Kastanienbraun', Burgundy: 'Bordeaux', Brown: 'Braun', Caramel: 'Karamell', Tan: 'Hellbraun', Cream: 'Creme', Silver: 'Silber', Gray: 'Grau' },
+    it: { Black: 'Nero', White: 'Bianco', Navy: 'Blu navy', Red: 'Rosso', 'Royal Blue': 'Blu reale', 'Sky Blue': 'Azzurro cielo', Teal: 'Verde acqua', Green: 'Verde', Mint: 'Menta', Gold: 'Oro', Yellow: 'Giallo', Orange: 'Arancione', Coral: 'Corallo', Pink: 'Rosa', Purple: 'Viola', Lavender: 'Lavanda', Maroon: 'Marrone rossiccio', Burgundy: 'Bordeaux', Brown: 'Marrone', Caramel: 'Caramello', Tan: 'Cuoio', Cream: 'Crema', Silver: 'Argento', Gray: 'Grigio' },
+    nl: { Black: 'Zwart', White: 'Wit', Navy: 'Marineblauw', Red: 'Rood', 'Royal Blue': 'Koningsblauw', 'Sky Blue': 'Hemelsblauw', Teal: 'Blauwgroen', Green: 'Groen', Mint: 'Mint', Gold: 'Goud', Yellow: 'Geel', Orange: 'Oranje', Coral: 'Koraal', Pink: 'Roze', Purple: 'Paars', Lavender: 'Lavendel', Maroon: 'Kastanjebruin', Burgundy: 'Bordeauxrood', Brown: 'Bruin', Caramel: 'Karamel', Tan: 'Lichtbruin', Cream: 'Crème', Silver: 'Zilver', Gray: 'Grijs' },
+    th: { Black: 'ดำ', White: 'ขาว', Navy: 'กรมท่า', Red: 'แดง', 'Royal Blue': 'น้ำเงินเข้ม', 'Sky Blue': 'ฟ้า', Teal: 'เขียวหัวเป็ด', Green: 'เขียว', Mint: 'มินต์', Gold: 'ทอง', Yellow: 'เหลือง', Orange: 'ส้ม', Coral: 'คอรัล', Pink: 'ชมพู', Purple: 'ม่วง', Lavender: 'ลาเวนเดอร์', Maroon: 'แดงเลือดหมู', Burgundy: 'เบอร์กันดี', Brown: 'น้ำตาล', Caramel: 'คาราเมล', Tan: 'น้ำตาลอ่อน', Cream: 'ครีม', Silver: 'เงิน', Gray: 'เทา' },
+    tl: { Black: 'Itim', White: 'Puti', Navy: 'Navy', Red: 'Pula', 'Royal Blue': 'Royal Blue', 'Sky Blue': 'Bughaw', Teal: 'Teal', Green: 'Berde', Mint: 'Mint', Gold: 'Ginto', Yellow: 'Dilaw', Orange: 'Kahel', Coral: 'Coral', Pink: 'Rosas', Purple: 'Lila', Lavender: 'Lavender', Maroon: 'Maroon', Burgundy: 'Burgundy', Brown: 'Kayumanggi', Caramel: 'Caramel', Tan: 'Tan', Cream: 'Krema', Silver: 'Pilak', Gray: 'Abo' },
+    pt: { Black: 'Preto', White: 'Branco', Navy: 'Azul-marinho', Red: 'Vermelho', 'Royal Blue': 'Azul-royal', 'Sky Blue': 'Azul-celeste', Teal: 'Verde-azulado', Green: 'Verde', Mint: 'Menta', Gold: 'Dourado', Yellow: 'Amarelo', Orange: 'Laranja', Coral: 'Coral', Pink: 'Rosa', Purple: 'Roxo', Lavender: 'Lavanda', Maroon: 'Grená', Burgundy: 'Bordô', Brown: 'Marrom', Caramel: 'Caramelo', Tan: 'Castanho-claro', Cream: 'Creme', Silver: 'Prata', Gray: 'Cinza' },
+  };
+
+  const colorLabel = (name: string) => COLOR_NAME_I18N[selectedLanguage || 'en']?.[name] ?? name;
+
+  // 색 이름 라벨이 붙은 공통 스와치 버튼 — 로고/글자색/테두리 피커에서 공용.
+  const colorSwatchButton = (c: { name: string; hex: string }, onClick: () => void) => (
+    <button
+      key={c.hex}
+      onClick={onClick}
+      title={c.name}
+      style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '3px', background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: '58px' }}
+    >
+      <span style={{ width: '44px', height: '44px', borderRadius: '10px', background: c.hex, border: '2px solid #4b5563', display: 'block' }} />
+      <span style={{ fontSize: '9px', color: '#d1d5db', textAlign: 'center', lineHeight: 1.15, wordBreak: 'keep-all' }}>{colorLabel(c.name)}</span>
+    </button>
+  );
+
   // 로고색 스텝 안내 문구 — 12개 언어 (버튼 라벨은 색 스와치라 언어 무관, 안내 문구만 번역)
-  const LOGO_PICKER_TEXT: Record<Lang, { bg: string; letters: string; back: string }> = {
-    en: { bg: 'Pick the background color', letters: 'Now pick the GN letter color', back: '← Change background' },
-    ko: { bg: '배경색을 선택하세요', letters: 'GN 글자색을 선택하세요', back: '← 배경색 다시 선택' },
-    ja: { bg: '背景色を選んでください', letters: 'GN 文字色を選んでください', back: '← 背景色を選び直す' },
-    zh: { bg: '请选择底色', letters: '请选择 GN 字母颜色', back: '← 重新选择底色' },
-    es: { bg: 'Elige el color de fondo', letters: 'Ahora elige el color de las letras GN', back: '← Cambiar fondo' },
-    fr: { bg: 'Choisissez la couleur de fond', letters: 'Choisissez la couleur des lettres GN', back: '← Changer le fond' },
-    de: { bg: 'Wähle die Hintergrundfarbe', letters: 'Wähle jetzt die GN-Buchstabenfarbe', back: '← Hintergrund ändern' },
-    it: { bg: 'Scegli il colore di sfondo', letters: 'Ora scegli il colore delle lettere GN', back: '← Cambia sfondo' },
-    nl: { bg: 'Kies de achtergrondkleur', letters: 'Kies nu de GN-letterkleur', back: '← Achtergrond wijzigen' },
-    th: { bg: 'เลือกสีพื้นหลัง', letters: 'เลือกสีตัวอักษร GN', back: '← เปลี่ยนสีพื้นหลัง' },
-    tl: { bg: 'Pumili ng kulay ng background', letters: 'Pumili ng kulay ng letrang GN', back: '← Palitan ang background' },
-    pt: { bg: 'Escolha a cor de fundo', letters: 'Agora escolha a cor das letras GN', back: '← Trocar o fundo' },
+  const LOGO_PICKER_TEXT: Record<Lang, { bg: string; letters: string; back: string; backLetter: string; confirm: string; confirmYes: string }> = {
+    en: { bg: 'Pick the background color', letters: 'Now pick the GN letter color', back: '← Change background', backLetter: '← Change letter color', confirm: 'Look good? Proceed with these colors?', confirmYes: 'Yes, looks good →' },
+    ko: { bg: '배경색을 선택하세요', letters: 'GN 글자색을 선택하세요', back: '← 배경색 다시 선택', backLetter: '← 글자색 다시 선택', confirm: '이 색상으로 진행할까요?', confirmYes: '네, 이대로 진행할게요 →' },
+    ja: { bg: '背景色を選んでください', letters: 'GN 文字色を選んでください', back: '← 背景色を選び直す', backLetter: '← 文字色を選び直す', confirm: 'この配色でよろしいですか？', confirmYes: 'はい、これで進めます →' },
+    zh: { bg: '请选择底色', letters: '请选择 GN 字母颜色', back: '← 重新选择底色', backLetter: '← 重新选择字母颜色', confirm: '这个配色可以吗？', confirmYes: '可以，就这样吧 →' },
+    es: { bg: 'Elige el color de fondo', letters: 'Ahora elige el color de las letras GN', back: '← Cambiar fondo', backLetter: '← Cambiar color de letras', confirm: '¿Te gusta? ¿Seguimos con estos colores?', confirmYes: 'Sí, se ve bien →' },
+    fr: { bg: 'Choisissez la couleur de fond', letters: 'Choisissez la couleur des lettres GN', back: '← Changer le fond', backLetter: '← Changer la couleur des lettres', confirm: 'Ça vous plaît ? On continue avec ces couleurs ?', confirmYes: 'Oui, ça me va →' },
+    de: { bg: 'Wähle die Hintergrundfarbe', letters: 'Wähle jetzt die GN-Buchstabenfarbe', back: '← Hintergrund ändern', backLetter: '← Buchstabenfarbe ändern', confirm: 'Gefällt es dir? Mit diesen Farben fortfahren?', confirmYes: 'Ja, passt so →' },
+    it: { bg: 'Scegli il colore di sfondo', letters: 'Ora scegli il colore delle lettere GN', back: '← Cambia sfondo', backLetter: '← Cambia colore lettere', confirm: 'Ti piace? Procediamo con questi colori?', confirmYes: 'Sì, va bene →' },
+    nl: { bg: 'Kies de achtergrondkleur', letters: 'Kies nu de GN-letterkleur', back: '← Achtergrond wijzigen', backLetter: '← Letterkleur wijzigen', confirm: 'Ziet het er goed uit? Doorgaan met deze kleuren?', confirmYes: 'Ja, ziet er goed uit →' },
+    th: { bg: 'เลือกสีพื้นหลัง', letters: 'เลือกสีตัวอักษร GN', back: '← เปลี่ยนสีพื้นหลัง', backLetter: '← เปลี่ยนสีตัวอักษร', confirm: 'สีนี้โอเคไหม? ดำเนินการต่อด้วยสีนี้เลย?', confirmYes: 'ใช่ ใช้สีนี้เลย →' },
+    tl: { bg: 'Pumili ng kulay ng background', letters: 'Pumili ng kulay ng letrang GN', back: '← Palitan ang background', backLetter: '← Palitan ang kulay ng letra', confirm: 'Maganda ba? Ituloy na ba ang mga kulay na ito?', confirmYes: 'Oo, ayos na →' },
+    pt: { bg: 'Escolha a cor de fundo', letters: 'Agora escolha a cor das letras GN', back: '← Trocar o fundo', backLetter: '← Trocar cor das letras', confirm: 'Ficou bom? Seguir com essas cores?', confirmYes: 'Sim, ficou ótimo →' },
   };
 
   const sendLogoChoice = (bg: { name: string; hex: string }, letters: { name: string; hex: string }) => {
     setLogoBg(null);
+    setLogoLetter(null);
     sendMessage(`GN logo patch — background: ${bg.name} (${bg.hex}), letters: ${letters.name} (${letters.hex})`);
   };
 
   const renderLogoPicker = () => {
     const lt = LOGO_PICKER_TEXT[selectedLanguage || 'en'];
-    const swatch = (c: { name: string; hex: string }, onClick: () => void) => (
-      <button
-        key={c.hex}
-        onClick={onClick}
-        title={c.name}
-        style={{
-          width: '44px', height: '44px', borderRadius: '10px', cursor: 'pointer',
-          background: c.hex, border: '2px solid #4b5563',
-        }}
-      />
-    );
+    const swatch = colorSwatchButton;
+    const previewLogoColor = logoLetter?.hex || '#9ca3af';
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <GNLogo bgColor={logoBg?.hex || '#e5e7eb'} logoColor="#9ca3af" width={80} height={49} />
+          <GNLogo bgColor={logoBg?.hex || '#e5e7eb'} logoColor={previewLogoColor} width={80} height={49} />
           <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>
-            {logoBg ? lt.letters : lt.bg}
+            {!logoBg ? lt.bg : !logoLetter ? lt.letters : lt.confirm}
           </span>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {!logoBg
-            ? LOGO_PALETTE.map(c => swatch(c, () => setLogoBg(c)))
-            : LOGO_PALETTE.map(c => swatch(c, () => sendLogoChoice(logoBg, c)))}
-        </div>
-        {logoBg && (
-          <button
-            onClick={() => setLogoBg(null)}
-            style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9ca3af', fontSize: '12px', cursor: 'pointer', padding: 0 }}
-          >{lt.back}</button>
+        {!logoBg && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {LOGO_PALETTE.map(c => swatch(c, () => setLogoBg(c)))}
+          </div>
         )}
+        {logoBg && !logoLetter && (
+          <>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {LOGO_PALETTE.map(c => swatch(c, () => setLogoLetter(c)))}
+            </div>
+            <button
+              onClick={() => setLogoBg(null)}
+              style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9ca3af', fontSize: '12px', cursor: 'pointer', padding: 0 }}
+            >{lt.back}</button>
+          </>
+        )}
+        {logoBg && logoLetter && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <button
+              onClick={() => sendLogoChoice(logoBg, logoLetter)}
+              style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', alignSelf: 'flex-start' }}
+            >{lt.confirmYes}</button>
+            <button
+              onClick={() => setLogoLetter(null)}
+              style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: '#9ca3af', fontSize: '12px', cursor: 'pointer', padding: 0 }}
+            >{lt.backLetter}</button>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 이름 자수 글자(fill) 색 피커 — 스와치 팔레트. 텍스트만 타이핑, 색은 버튼으로.
+  const NAME_COLOR_PICKER_TEXT: Record<Lang, string> = {
+    en: 'Pick the letter color', ko: '글자 색을 선택하세요', ja: '文字の色を選んでください', zh: '请选择字体颜色',
+    es: 'Elige el color de las letras', fr: 'Choisissez la couleur des lettres', de: 'Wähle die Buchstabenfarbe',
+    it: 'Scegli il colore delle lettere', nl: 'Kies de letterkleur', th: 'เลือกสีตัวอักษร',
+    tl: 'Pumili ng kulay ng letra', pt: 'Escolha a cor das letras',
+  };
+
+  const sendNameColorChoice = (c: { name: string; hex: string }) => sendMessage(`Name color: ${c.name} (${c.hex})`);
+
+  const renderNameColorPicker = () => {
+    const heading = NAME_COLOR_PICKER_TEXT[selectedLanguage || 'en'];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>{heading}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {LOGO_PALETTE.map(c => colorSwatchButton(c, () => sendNameColorChoice(c)))}
+        </div>
+      </div>
+    );
+  };
+
+  // 이름 자수 테두리(아웃라인) 색 피커 — 로고와 동일하게 스와치 팔레트 + "단색(테두리 없음)" 버튼.
+  const BORDER_PICKER_TEXT: Record<Lang, { heading: string; none: string }> = {
+    en: { heading: 'Pick a border (outline) color, or keep it a single color', none: 'Single color (no border)' },
+    ko: { heading: '테두리(아웃라인) 색을 고르거나, 단색으로 두세요', none: '단색 (테두리 없음)' },
+    ja: { heading: '縁取り（アウトライン）色を選ぶか、単色のままにできます', none: '単色（縁取りなし）' },
+    zh: { heading: '选择边框（描边）颜色，或保持单色', none: '单色（无边框）' },
+    es: { heading: 'Elige un color de borde (contorno), o déjalo de un solo color', none: 'Un solo color (sin borde)' },
+    fr: { heading: 'Choisissez une couleur de contour, ou gardez une seule couleur', none: 'Une seule couleur (sans contour)' },
+    de: { heading: 'Wähle eine Randfarbe (Kontur) oder behalte eine einzige Farbe', none: 'Einfarbig (kein Rand)' },
+    it: { heading: 'Scegli un colore del bordo (contorno), o tieni un solo colore', none: 'Un solo colore (senza bordo)' },
+    nl: { heading: 'Kies een randkleur (omlijning), of houd het één kleur', none: 'Eén kleur (geen rand)' },
+    th: { heading: 'เลือกสีขอบ (เส้นรอบ) หรือใช้สีเดียว', none: 'สีเดียว (ไม่มีขอบ)' },
+    tl: { heading: 'Pumili ng kulay ng gilid (outline), o panatilihing isang kulay', none: 'Isang kulay (walang gilid)' },
+    pt: { heading: 'Escolha uma cor de borda (contorno), ou mantenha uma cor só', none: 'Uma cor só (sem borda)' },
+  };
+
+  const sendBorderChoice = (c: { name: string; hex: string }) => sendMessage(`Name border: ${c.name} (${c.hex})`);
+  const sendNoBorder = () => sendMessage('No border');
+
+  const renderBorderPicker = () => {
+    const bt = BORDER_PICKER_TEXT[selectedLanguage || 'en'];
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+        <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>{bt.heading}</span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+          {LOGO_PALETTE.map(c => colorSwatchButton(c, () => sendBorderChoice(c)))}
+        </div>
+        <button
+          onClick={sendNoBorder}
+          style={{ alignSelf: 'flex-start', background: '#374151', color: '#d1d5db', fontWeight: 700, border: '2px solid #4b5563', borderRadius: '10px', padding: '8px 14px', cursor: 'pointer' }}
+        >{bt.none}</button>
       </div>
     );
   };
@@ -1253,22 +1376,52 @@ export default function ChatPage() {
   };
 
   // 변경 여부 질문 — "그대로 진행"(결정론적) vs "바꿀 부분 있어요"(자유입력→AI 해석)
-  const CHANGES_ASK_TEXT: Record<Lang, { keep: string; change: string }> = {
-    en: { keep: 'Proceed as-is', change: 'I have changes' },
-    ko: { keep: '그대로 진행', change: '바꿀 부분 있어요' },
-    ja: { keep: 'このまま進める', change: '変更したい' },
-    zh: { keep: '就这样进行', change: '我想修改' },
-    es: { keep: 'Continuar así', change: 'Quiero cambios' },
-    fr: { keep: 'Continuer ainsi', change: 'Je veux modifier' },
-    de: { keep: 'So fortfahren', change: 'Ich möchte ändern' },
-    it: { keep: 'Procedi così', change: 'Voglio modifiche' },
-    nl: { keep: 'Zo doorgaan', change: 'Ik wil wijzigen' },
-    th: { keep: 'ดำเนินการตามนี้', change: 'ต้องการแก้ไข' },
-    tl: { keep: 'Ituloy nang ganito', change: 'May babaguhin' },
-    pt: { keep: 'Continuar assim', change: 'Quero mudar' },
+  // 변경 요청 루프 문구 — keep: 첫 질문의 "그대로 진행", keepMore: 이후 "더 없음", change: "변경할게요"
+  const CHANGES_ASK_TEXT: Record<Lang, { keep: string; keepMore: string; change: string }> = {
+    en: { keep: 'Proceed as-is', keepMore: 'No, that\'s all', change: 'I have changes' },
+    ko: { keep: '그대로 진행', keepMore: '더 없어요', change: '변경할게요' },
+    ja: { keep: 'このまま進める', keepMore: '他にはありません', change: '変更したい' },
+    zh: { keep: '就这样进行', keepMore: '没有了', change: '我想修改' },
+    es: { keep: 'Continuar así', keepMore: 'No, es todo', change: 'Quiero cambios' },
+    fr: { keep: 'Continuer ainsi', keepMore: 'Non, c\'est tout', change: 'Je veux modifier' },
+    de: { keep: 'So fortfahren', keepMore: 'Nein, das war\'s', change: 'Ich möchte ändern' },
+    it: { keep: 'Procedi così', keepMore: 'No, è tutto', change: 'Voglio modifiche' },
+    nl: { keep: 'Zo doorgaan', keepMore: 'Nee, dat is alles', change: 'Ik wil wijzigen' },
+    th: { keep: 'ดำเนินการตามนี้', keepMore: 'ไม่มีแล้ว', change: 'ต้องการแก้ไข' },
+    tl: { keep: 'Ituloy nang ganito', keepMore: 'Wala na', change: 'May babaguhin' },
+    pt: { keep: 'Continuar assim', keepMore: 'Não, é tudo', change: 'Quero mudar' },
   };
 
-  const sendNoChanges = () => sendMessage('No changes');
+  // 변경 재확인 문구 (맞음/다시 입력) 및 "무엇을 변경?" 안내
+  const CHANGE_CONFIRM_TEXT: Record<Lang, { yes: string; reenter: string; prompt: string }> = {
+    en: { yes: 'Correct', reenter: 'Re-enter', prompt: 'What would you like to change? Please type it below.' },
+    ko: { yes: '맞아요', reenter: '다시 입력', prompt: '어떤 부분을 변경하고 싶으세요? 아래에 입력해주세요.' },
+    ja: { yes: '合っています', reenter: '入力し直す', prompt: 'どこを変更したいですか？下に入力してください。' },
+    zh: { yes: '正确', reenter: '重新输入', prompt: '您想修改哪里？请在下方输入。' },
+    es: { yes: 'Correcto', reenter: 'Volver a escribir', prompt: '¿Qué te gustaría cambiar? Escríbelo abajo.' },
+    fr: { yes: 'C\'est correct', reenter: 'Ressaisir', prompt: 'Que souhaitez-vous changer ? Écrivez-le ci-dessous.' },
+    de: { yes: 'Richtig', reenter: 'Neu eingeben', prompt: 'Was möchtest du ändern? Bitte unten eingeben.' },
+    it: { yes: 'Corretto', reenter: 'Reinserisci', prompt: 'Cosa vuoi cambiare? Scrivilo qui sotto.' },
+    nl: { yes: 'Klopt', reenter: 'Opnieuw invoeren', prompt: 'Wat wil je veranderen? Typ het hieronder.' },
+    th: { yes: 'ถูกต้อง', reenter: 'พิมพ์ใหม่', prompt: 'คุณต้องการเปลี่ยนอะไร? กรุณาพิมพ์ด้านล่าง' },
+    tl: { yes: 'Tama', reenter: 'I-type ulit', prompt: 'Ano ang gusto mong baguhin? I-type sa ibaba.' },
+    pt: { yes: 'Correto', reenter: 'Digitar de novo', prompt: 'O que você quer mudar? Digite abaixo.' },
+  };
+
+  // "변경할게요" → 코드가 "무엇을 변경?" 안내 후 입력 유도(AI 호출 없음)
+  const startChangeInput = () => {
+    setChangeInputMode(true);
+    setTimeout(() => textareaRef.current?.focus(), 0);
+  };
+
+  const sendNoChanges = () => { setChangeInputMode(false); sendMessage('No changes'); };
+
+  // 변경 확정(맞음) — 코드가 3회 한도를 세어 AI에게 더 물을지/넘어갈지 토큰으로 지시(표시 시 숨김)
+  const confirmChangeYes = () => {
+    const next = changeCount + 1;
+    setChangeCount(next);
+    sendMessage(next >= 3 ? 'Correct [[CHANGE_DONE]]' : 'Correct [[CHANGE_MORE]]');
+  };
 
   const renderChangesAsk = () => {
     const t = CHANGES_ASK_TEXT[selectedLanguage || 'en'];
@@ -1277,11 +1430,76 @@ export default function ChatPage() {
         <button
           onClick={sendNoChanges}
           style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
-        >{t.keep}</button>
+        >{changeCount > 0 ? t.keepMore : t.keep}</button>
         <button
-          onClick={() => textareaRef.current?.focus()}
-          style={{ background: '#374151', color: '#d1d5db', fontWeight: 700, border: '2px solid #4b5563', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
+          onClick={startChangeInput}
+          style={{ background: '#2563eb', color: '#fff', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
         >{t.change}</button>
+      </div>
+    );
+  };
+
+  const renderChangeConfirm = () => {
+    const t = CHANGE_CONFIRM_TEXT[selectedLanguage || 'en'];
+    return (
+      <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+        <button
+          onClick={confirmChangeYes}
+          style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
+        >{t.yes}</button>
+        <button
+          onClick={startChangeInput}
+          style={{ background: '#374151', color: '#d1d5db', fontWeight: 700, border: '2px solid #4b5563', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer' }}
+        >{t.reenter}</button>
+      </div>
+    );
+  };
+
+  // 사진 분석 대기 안내 — 업로드 사진의 첫 분석 응답을 기다리는 동안 일반 "입력 중..."보다
+  // 구체적인 문구를 보여준다(분석에 시간이 좀 걸려 손님이 멈춘 줄 오해하지 않도록).
+  const PHOTO_WAIT_TEXT: Record<Lang, string> = {
+    en: 'Analyzing your photo, please wait a moment...', ko: '사진을 분석하고 있어요, 잠시만 기다려주세요...',
+    ja: '写真を分析しています。少々お待ちください...', zh: '正在分析您的照片，请稍候...',
+    es: 'Analizando tu foto, un momento por favor...', fr: 'Analyse de votre photo en cours, un instant...',
+    de: 'Dein Foto wird analysiert, einen Moment bitte...', it: 'Sto analizzando la tua foto, un attimo...',
+    nl: 'Je foto wordt geanalyseerd, een moment geduld...', th: 'กำลังวิเคราะห์รูปภาพของคุณ กรุณารอสักครู่...',
+    tl: 'Sinusuri ang iyong larawan, sandali lang...', pt: 'Analisando sua foto, um momento...',
+  };
+
+  // 사진 분석(경고+색상 코멘트) 직후 곧바로 스펙 위저드로 넘어가지 않고 보여주는 확인 게이트.
+  const START_GATE_TEXT: Record<Lang, { heading: string; yes: string; hint: string }> = {
+    en: { heading: 'Great, thanks! Shall we start building your glove?', yes: 'Yes, let\'s start →', hint: 'Have a question first? Just type it below.' },
+    ko: { heading: '좋아요! 그럼 주문을 시작할까요?', yes: '네, 시작할게요 →', hint: '먼저 궁금한 점이 있으면 아래에 입력해주세요.' },
+    ja: { heading: 'ありがとうございます！それでは注文を始めましょうか？', yes: 'はい、始めます →', hint: '先に質問がある場合は下に入力してください。' },
+    zh: { heading: '好的，谢谢！那我们开始定制手套吧？', yes: '好的，开始吧 →', hint: '有问题的话，请在下方输入。' },
+    es: { heading: '¡Genial, gracias! ¿Empezamos a crear tu guante?', yes: 'Sí, empecemos →', hint: '¿Tienes alguna pregunta? Escríbela abajo.' },
+    fr: { heading: 'Merci ! On commence la création de votre gant ?', yes: 'Oui, on commence →', hint: 'Une question avant ? Tapez-la ci-dessous.' },
+    de: { heading: 'Danke! Sollen wir mit deinem Handschuh beginnen?', yes: 'Ja, los geht\'s →', hint: 'Erst eine Frage? Einfach unten eingeben.' },
+    it: { heading: 'Grazie! Iniziamo a creare il tuo guanto?', yes: 'Sì, iniziamo →', hint: 'Hai una domanda prima? Scrivila qui sotto.' },
+    nl: { heading: 'Bedankt! Zullen we je handschoen gaan samenstellen?', yes: 'Ja, laten we beginnen →', hint: 'Eerst een vraag? Typ hem hieronder.' },
+    th: { heading: 'ขอบคุณค่ะ/ครับ! เริ่มสร้างถุงมือของคุณเลยไหม?', yes: 'ใช่ เริ่มเลย →', hint: 'มีคำถามก่อนไหม? พิมพ์ด้านล่างได้เลย' },
+    tl: { heading: 'Salamat! Simulan na ba natin ang glove mo?', yes: 'Oo, simulan na →', hint: 'May tanong ka muna? I-type na lang sa ibaba.' },
+    pt: { heading: 'Obrigado! Vamos começar a criar sua luva?', yes: 'Sim, vamos começar →', hint: 'Tem alguma pergunta antes? Digite abaixo.' },
+  };
+
+  const confirmStartWizard = () => {
+    setAwaitingStartConfirm(false);
+    preWizardGateRef.current = false;
+    setSpecStep('sport');
+  };
+
+  const renderStartGate = () => {
+    const sg = START_GATE_TEXT[selectedLanguage || 'en'];
+    return (
+      <div className="flex justify-start">
+        <div className="max-w-xs lg:max-w-md p-3 rounded-2xl bg-gray-800">
+          <div className="whitespace-pre-wrap">{sg.heading}</div>
+          <button
+            onClick={confirmStartWizard}
+            style={{ background: '#facc15', color: '#111', fontWeight: 700, border: 'none', borderRadius: '10px', padding: '10px 16px', cursor: 'pointer', marginTop: '10px' }}
+          >{sg.yes}</button>
+          <div className="text-gray-400 text-xs mt-2">{sg.hint}</div>
+        </div>
       </div>
     );
   };
@@ -1736,6 +1954,14 @@ export default function ChatPage() {
     const hasLogoPick = cleanContent.includes('[LOGO_PICK]');
     cleanContent = cleanContent.replace(/\[LOGO_PICK\]/g, '').trim();
 
+    // [NAME_COLOR_PICK] 태그 감지 — 이름 자수 글자색 스와치 피커
+    const hasNameColorPick = cleanContent.includes('[NAME_COLOR_PICK]');
+    cleanContent = cleanContent.replace(/\[NAME_COLOR_PICK\]/g, '').trim();
+
+    // [BORDER_PICK] 태그 감지 — 이름 자수 테두리 색 스와치 피커
+    const hasBorderPick = cleanContent.includes('[BORDER_PICK]');
+    cleanContent = cleanContent.replace(/\[BORDER_PICK\]/g, '').trim();
+
     // [NAME_LOC:text] / [FLAG_LOC] 태그 감지 — 손가락 위치 피커
     const nameLocMatch = cleanContent.match(/\[NAME_LOC:([^\]]*)\]/);
     const nameLocText = nameLocMatch ? nameLocMatch[1].trim() : '';
@@ -1752,9 +1978,16 @@ export default function ChatPage() {
     const hasCustomerForm = cleanContent.includes('[CUSTOMER_FORM]');
     cleanContent = cleanContent.replace(/\[CUSTOMER_FORM\]/g, '').trim();
 
-    // [CHANGES_ASK] 태그 감지 — "그대로 진행 / 바꿀 부분 있어요" 버튼
+    // [CHANGES_ASK] 태그 감지 — "그대로 진행 / 변경할게요" 버튼
     const hasChangesAsk = cleanContent.includes('[CHANGES_ASK]');
     cleanContent = cleanContent.replace(/\[CHANGES_ASK\]/g, '').trim();
+
+    // [CHANGE_CONFIRM] 태그 감지 — AI가 변경 내용을 재확인("...맞나요?") → 맞음/다시 입력 버튼
+    const hasChangeConfirm = cleanContent.includes('[CHANGE_CONFIRM]');
+    cleanContent = cleanContent.replace(/\[CHANGE_CONFIRM\]/g, '').trim();
+
+    // 사용자 메시지에 실린 숨김 토큰(맞음 시 코드가 붙임)은 화면에서 제거
+    cleanContent = cleanContent.replace(/\[\[CHANGE_(MORE|DONE)\]\]/g, '').trim();
 
     // 마크다운 미렌더 — AI가 넣은 **굵게** 마커가 그대로 노출되므로 제거
     cleanContent = cleanContent.replace(/\*\*/g, '');
@@ -1779,11 +2012,14 @@ export default function ChatPage() {
         })}
         {hasFontPick && renderFontPicker(fontPickText)}
         {hasLogoPick && renderLogoPicker()}
+        {hasNameColorPick && renderNameColorPicker()}
+        {hasBorderPick && renderBorderPicker()}
         {hasNameLoc && renderLocationPicker('name', nameLocText)}
         {hasFlagPick && renderFlagPicker()}
         {hasFlagLoc && renderLocationPicker('flag', '')}
         {hasCustomerForm && renderCustomerForm()}
         {hasChangesAsk && renderChangesAsk()}
+        {hasChangeConfirm && renderChangeConfirm()}
       </>
     );
   };
@@ -2140,6 +2376,14 @@ export default function ChatPage() {
                 </div>
               </div>
             ))}
+            {!specStep && awaitingStartConfirm && !loading && renderStartGate()}
+            {changeInputMode && !loading && (
+              <div className="flex justify-start">
+                <div className="max-w-xs lg:max-w-md p-3 rounded-2xl bg-gray-800 whitespace-pre-wrap">
+                  {CHANGE_CONFIRM_TEXT[selectedLanguage || 'en'].prompt}
+                </div>
+              </div>
+            )}
             {specStep && (
               <div className="flex justify-start">
                 <div className="max-w-xs lg:max-w-md p-3 rounded-2xl bg-gray-800">
@@ -2151,7 +2395,11 @@ export default function ChatPage() {
                 </div>
               </div>
             )}
-            {loading && <div className="text-gray-400 text-sm">{ui.typing}</div>}
+            {loading && (
+              <div className="text-gray-400 text-sm">
+                {specWizardPendingRef.current ? PHOTO_WAIT_TEXT[selectedLanguage || 'en'] : ui.typing}
+              </div>
+            )}
             <div ref={messagesEndRef} />
           </div>
 
