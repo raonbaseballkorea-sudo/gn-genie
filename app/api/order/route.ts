@@ -191,7 +191,8 @@ export async function POST(req: NextRequest) {
 
     const orderId = generateOrderId();
     const orderDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
-    const fullOrder = { ...orderData, orderId, orderDate };
+    const chatHistory = formatChatHistory(messages || []);
+    const fullOrder = { ...orderData, orderId, orderDate, chatHistory, status: 'pending' as const };
 
     saveOrder(fullOrder);
 
@@ -204,8 +205,6 @@ export async function POST(req: NextRequest) {
         contentType: 'image/jpeg',
       });
     }
-
-    const chatHistory = formatChatHistory(messages || []);
 
     // 본인(Robin)용 — 고객용 주문서 + 공장용 중국어 작업지시서 + 대화 내용
     const adminAttachments = [...attachments];

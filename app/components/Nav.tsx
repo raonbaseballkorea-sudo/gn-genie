@@ -11,6 +11,7 @@ export default function Nav() {
     { href: '/about', label: '📌 About' },
     { href: '/how-to-order', label: '📖 How to Order' },
     { href: '/qna', label: '❓ Q&A' },
+    { href: '/orders', label: '📦 My Orders' },
   ];
 
   return (
@@ -23,7 +24,7 @@ export default function Nav() {
       </div>
 
       {/* 버튼 4개 - 최대 너비 제한 + 중앙 정렬 */}
-      <div className="max-w-2xl mx-auto grid grid-cols-4 gap-2">
+      <div className="max-w-2xl mx-auto grid grid-cols-5 gap-2">
         {links.map(({ href, label }) => {
           const active = pathname === href;
           return (

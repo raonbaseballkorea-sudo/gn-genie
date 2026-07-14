@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+import { markEmailVerified } from '@/lib/emailVerification';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,6 +35,7 @@ export async function POST(req: NextRequest) {
     }
 
     codeStore.delete(email);
+    markEmailVerified(email);
     return NextResponse.json({ success: true });
   }
 

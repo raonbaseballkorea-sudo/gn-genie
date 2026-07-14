@@ -14,6 +14,10 @@ export interface OrderRecord {
   paidAt?: string;
   amountPaid?: string;
   captureId?: string;
+  chatHistory?: string;
+  // 결제와 별개의 제작/배송 단계. 결제 여부(paid)는 그대로 유지, status는 그 이후 진행 상황만 나타냄.
+  status?: 'pending' | 'in_production' | 'shipped' | 'delivered';
+  statusUpdatedAt?: string;
   [k: string]: any;
 }
 
@@ -86,6 +90,43 @@ export function getPaidOrdersBetween(start: Date, end: Date): OrderRecord[] {
     }
   }
   return result;
+}
+
+// 이메일로 걸린 전체 주문 이력 (모든 주차 파일 스캔), 최신순
+export function getOrdersByEmail(email: string): OrderRecord[] {
+  const target = email.trim().toLowerCase();
+  if (!target) return [];
+  const result: OrderRecord[] = [];
+  for (const filePath of weekFilePaths()) {
+    for (const o of readOrders(filePath)) {
+      const oe = (o.customer?.email || '').trim().toLowerCase();
+      if (oe === target) result.push(o);
+    }
+  }
+  return result.sort((a, b) => (Date.parse(b.orderDate || '') || 0) - (Date.parse(a.orderDate || '') || 0));
+}
+
+// 관리자용 — 모든 주차의 전체 주문, 최신순
+export function getAllOrders(): OrderRecord[] {
+  const result: OrderRecord[] = [];
+  for (const filePath of weekFilePaths()) {
+    result.push(...readOrders(filePath));
+  }
+  return result.sort((a, b) => (Date.parse(b.orderDate || '') || 0) - (Date.parse(a.orderDate || '') || 0));
+}
+
+// orderId로 상태(제작/배송 단계)를 갱신. 어느 주차 파일에 있는지 몰라 전체를 스캔.
+export function updateOrderStatus(orderId: string, status: OrderRecord['status']): OrderRecord | null {
+  for (const filePath of weekFilePaths()) {
+    const orders = readOrders(filePath);
+    const idx = orders.findIndex((o) => o.orderId === orderId);
+    if (idx === -1) continue;
+    orders[idx].status = status;
+    orders[idx].statusUpdatedAt = new Date().toISOString();
+    fs.writeFileSync(filePath, JSON.stringify(orders, null, 2));
+    return orders[idx];
+  }
+  return null;
 }
 
 const KST_OFFSET_MS = 9 * 60 * 60 * 1000;

@@ -641,8 +641,16 @@ export default function ChatPage() {
 
         console.log('[DEBUG] finalOrder.customer.email:', finalOrder.customer.email);
 
+        // 주문서에서 "수정"으로 되돌아온 재생성인 경우, AI 응답엔 없는 장인 메시지(결정론적 스텝에서
+        // 수집)를 이전 orderData에서 보존한다. 최초 완성 시엔 이전 값이 없어 아무 영향 없음.
+        const prevCraftsman = orderData?.special_requests;
+        if (prevCraftsman !== undefined) {
+          finalOrder.special_requests = prevCraftsman;
+          finalOrder.special_requests_zh = orderData?.special_requests_zh;
+        }
+
         setOrderData(finalOrder);
-        setCraftsmanMsg('');
+        setCraftsmanMsg(prevCraftsman || '');
         // 장인 메시지를 결정론적 스텝에서 먼저 받고, 그 다음 주문서로 진입
         setStep('craftsman');
       } else {
@@ -784,6 +792,14 @@ export default function ChatPage() {
     setOrderData((prev: any) => (prev ? { ...prev, special_requests: msg, special_requests_zh: zh } : prev));
     setCraftsmanBusy(false);
     setStep('order');
+  };
+
+  // 주문서에서 "수정" — 결제 전 마지막 방어선. 채팅으로 되돌아가 자유입력(changeInputMode)으로
+  // 바꿀 내용을 자연어로 받고, 기존 파이프라인(callChatAPI → orderComplete)이 주문서를 재생성한다.
+  const handleOrderModify = () => {
+    setStep('chat');
+    setChangeInputMode(true);
+    setTimeout(() => textareaRef.current?.focus(), 0);
   };
 
   const handleOrderConfirm = async () => {
@@ -2488,7 +2504,7 @@ export default function ChatPage() {
         <div className="w-full max-w-3xl py-8">
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
             <div ref={orderSheetRef}>
-              <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} variant="customer" />
+              <OrderSheet orderData={orderData} onConfirm={handleOrderConfirm} onModify={handleOrderModify} variant="customer" />
             </div>
           </div>
           <div ref={factorySheetRef} style={{ position: 'absolute', top: 0, left: '-9999px' }}>

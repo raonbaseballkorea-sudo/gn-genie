@@ -87,7 +87,7 @@ type UILabels = {
   fingerMap: string; gloveSpecs: string; sportLabel: string; handLabel: string; sizeLabel: string;
   positionLabel: string; webLabel: string; palmLabel: string; embroidery: string; nameLabel: string; flagLabel: string; borderLabel: string;
   noNameEmb: string; noFlagEmb: string; shipTo: string; messageToCraftsman: string; noMessage: string;
-  confirmOrder: string; confirmed: string; pad: string; hood: string; inner: string; addOns: string;
+  confirmOrder: string; confirmed: string; modifyOrder: string; confirmReminder: string; pad: string; hood: string; inner: string; addOns: string;
 };
 
 const LABELS: { [lang: string]: UILabels } = {
@@ -100,7 +100,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Embroidery', nameLabel: 'Text', flagLabel: 'Flag', borderLabel: 'Border',
     noNameEmb: 'No name embroidery', noFlagEmb: 'No flag embroidery', shipTo: 'Ship To',
     messageToCraftsman: '✍️ Message to the Craftsman', noMessage: 'No message',
-    confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', pad: 'PAD', hood: 'HOOD', inner: 'Inner', addOns: 'Add-ons',
+    confirmOrder: '✅ CONFIRM ORDER', confirmed: '✅ CONFIRMED', modifyOrder: '✏️ Edit', confirmReminder: 'Please double-check the name spelling and shipping address — changes aren\'t possible after payment.', pad: 'PAD', hood: 'HOOD', inner: 'Inner', addOns: 'Add-ons',
   },
   zh: {
     orderSheet: '工作指示单', colorChanges: '颜色变更', additionalRequests: '其他要求',
@@ -111,7 +111,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '刺绣', nameLabel: '文字', flagLabel: '旗帜', borderLabel: '边框',
     noNameEmb: '无姓名刺绣', noFlagEmb: '无旗帜刺绣', shipTo: '收货地址',
     messageToCraftsman: '✍️ 给工匠的留言', noMessage: '无留言',
-    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', pad: '野手用指垫', hood: '投手用指套', inner: '内侧', addOns: '附加配件',
+    confirmOrder: '✅ 确认订单', confirmed: '✅ 已确认', modifyOrder: '✏️ 修改', confirmReminder: '请再次核对刺绣姓名拼写和收货地址 — 付款后将无法修改。', pad: '野手用指垫', hood: '投手用指套', inner: '内侧', addOns: '附加配件',
   },
   ko: {
     orderSheet: '주문서', colorChanges: '컬러 변경', additionalRequests: '추가 요청사항',
@@ -122,7 +122,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '자수', nameLabel: '텍스트', flagLabel: '국기', borderLabel: '테두리',
     noNameEmb: '이름 자수 없음', noFlagEmb: '국기 자수 없음', shipTo: '배송지',
     messageToCraftsman: '✍️ 장인에게 남기는 메시지', noMessage: '메시지 없음',
-    confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', pad: '패드', hood: '후드', inner: '내측', addOns: '추가 옵션',
+    confirmOrder: '✅ 주문 확정', confirmed: '✅ 확정 완료', modifyOrder: '✏️ 수정', confirmReminder: '자수 이름 철자와 배송지를 다시 한번 확인해주세요 — 결제 후에는 변경이 불가합니다.', pad: '패드', hood: '후드', inner: '내측', addOns: '추가 옵션',
   },
   ja: {
     orderSheet: '注文書', colorChanges: 'カラー変更', additionalRequests: 'その他のリクエスト',
@@ -133,7 +133,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: '刺繍', nameLabel: 'テキスト', flagLabel: '国旗', borderLabel: '縁取り',
     noNameEmb: '名前刺繍なし', noFlagEmb: '国旗刺繍なし', shipTo: '配送先',
     messageToCraftsman: '✍️ 職人へのメッセージ', noMessage: 'メッセージなし',
-    confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', pad: 'パッド', hood: 'フード', inner: '内側', addOns: '追加オプション',
+    confirmOrder: '✅ 注文を確定', confirmed: '✅ 確定済み', modifyOrder: '✏️ 修正', confirmReminder: '刺繍のお名前のつづりとお届け先住所をもう一度ご確認ください — お支払い後は変更できません。', pad: 'パッド', hood: 'フード', inner: '内側', addOns: '追加オプション',
   },
   es: {
     orderSheet: 'HOJA DE PEDIDO', colorChanges: 'Cambios de Color', additionalRequests: 'Solicitudes Adicionales',
@@ -144,7 +144,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Bordado', nameLabel: 'Texto', flagLabel: 'Bandera', borderLabel: 'Borde',
     noNameEmb: 'Sin bordado de nombre', noFlagEmb: 'Sin bordado de bandera', shipTo: 'Enviar a',
     messageToCraftsman: '✍️ Mensaje para el Artesano', noMessage: 'Sin mensaje',
-    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior', addOns: 'Complementos',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', modifyOrder: '✏️ Editar', confirmReminder: 'Verifica la ortografía del nombre bordado y la dirección de envío — no se pueden hacer cambios después del pago.', pad: 'ALMOHADILLA', hood: 'CAPUCHA', inner: 'Interior', addOns: 'Complementos',
   },
   fr: {
     orderSheet: 'BON DE COMMANDE', colorChanges: 'Changements de Couleur', additionalRequests: 'Demandes Additionnelles',
@@ -155,7 +155,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Broderie', nameLabel: 'Texte', flagLabel: 'Drapeau', borderLabel: 'Contour',
     noNameEmb: 'Pas de broderie de nom', noFlagEmb: 'Pas de broderie de drapeau', shipTo: 'Livraison',
     messageToCraftsman: "✍️ Message à l'Artisan", noMessage: 'Aucun message',
-    confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur', addOns: 'Accessoires',
+    confirmOrder: '✅ CONFIRMER LA COMMANDE', confirmed: '✅ CONFIRMÉ', modifyOrder: '✏️ Modifier', confirmReminder: 'Veuillez revérifier l\'orthographe du nom brodé et l\'adresse de livraison — aucune modification n\'est possible après le paiement.', pad: 'COUSSINET', hood: 'CAPUCHE', inner: 'Intérieur', addOns: 'Accessoires',
   },
   de: {
     orderSheet: 'BESTELLBLATT', colorChanges: 'Farbänderungen', additionalRequests: 'Zusätzliche Wünsche',
@@ -166,7 +166,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Stickerei', nameLabel: 'Text', flagLabel: 'Flagge', borderLabel: 'Umrandung',
     noNameEmb: 'Keine Namensstickerei', noFlagEmb: 'Keine Flaggenstickerei', shipTo: 'Lieferadresse',
     messageToCraftsman: '✍️ Nachricht an den Handwerker', noMessage: 'Keine Nachricht',
-    confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen', addOns: 'Zubehör',
+    confirmOrder: '✅ BESTELLUNG BESTÄTIGEN', confirmed: '✅ BESTÄTIGT', modifyOrder: '✏️ Ändern', confirmReminder: 'Bitte überprüfe die Schreibweise des Sticknamens und die Lieferadresse — nach der Zahlung sind keine Änderungen möglich.', pad: 'POLSTER', hood: 'HAUBE', inner: 'Innen', addOns: 'Zubehör',
   },
   it: {
     orderSheet: 'FOGLIO ORDINE', colorChanges: 'Cambi Colore', additionalRequests: 'Richieste Aggiuntive',
@@ -177,7 +177,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Ricamo', nameLabel: 'Testo', flagLabel: 'Bandiera', borderLabel: 'Bordo',
     noNameEmb: 'Nessun ricamo del nome', noFlagEmb: 'Nessun ricamo della bandiera', shipTo: 'Spedizione',
     messageToCraftsman: "✍️ Messaggio all'Artigiano", noMessage: 'Nessun messaggio',
-    confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno', addOns: 'Accessori',
+    confirmOrder: '✅ CONFERMA ORDINE', confirmed: '✅ CONFERMATO', modifyOrder: '✏️ Modifica', confirmReminder: 'Ricontrolla l\'ortografia del nome ricamato e l\'indirizzo di spedizione — non sono possibili modifiche dopo il pagamento.', pad: 'IMBOTTITURA', hood: 'CAPPUCCIO', inner: 'Interno', addOns: 'Accessori',
   },
   nl: {
     orderSheet: 'BESTELFORMULIER', colorChanges: 'Kleurwijzigingen', additionalRequests: 'Extra Verzoeken',
@@ -188,7 +188,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Borduurwerk', nameLabel: 'Tekst', flagLabel: 'Vlag', borderLabel: 'Rand',
     noNameEmb: 'Geen naamborduring', noFlagEmb: 'Geen vlagborduring', shipTo: 'Verzendadres',
     messageToCraftsman: '✍️ Bericht aan de Vakman', noMessage: 'Geen bericht',
-    confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen', addOns: 'Extra opties',
+    confirmOrder: '✅ BESTELLING BEVESTIGEN', confirmed: '✅ BEVESTIGD', modifyOrder: '✏️ Wijzigen', confirmReminder: 'Controleer de spelling van de geborduurde naam en het verzendadres nogmaals — na betaling zijn wijzigingen niet mogelijk.', pad: 'KUSSENTJE', hood: 'KAP', inner: 'Binnen', addOns: 'Extra opties',
   },
   th: {
     orderSheet: 'ใบสั่งซื้อ', colorChanges: 'การเปลี่ยนสี', additionalRequests: 'คำขอเพิ่มเติม',
@@ -199,7 +199,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'งานปัก', nameLabel: 'ข้อความ', flagLabel: 'ธง', borderLabel: 'ขอบ',
     noNameEmb: 'ไม่มีการปักชื่อ', noFlagEmb: 'ไม่มีการปักธง', shipTo: 'จัดส่งไปที่',
     messageToCraftsman: '✍️ ข้อความถึงช่างฝีมือ', noMessage: 'ไม่มีข้อความ',
-    confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน', addOns: 'ส่วนเสริม',
+    confirmOrder: '✅ ยืนยันคำสั่งซื้อ', confirmed: '✅ ยืนยันแล้ว', modifyOrder: '✏️ แก้ไข', confirmReminder: 'กรุณาตรวจสอบการสะกดชื่อที่ปักและที่อยู่จัดส่งอีกครั้ง — ไม่สามารถแก้ไขได้หลังชำระเงิน', pad: 'แผ่นรอง', hood: 'ฮูด', inner: 'ด้านใน', addOns: 'ส่วนเสริม',
   },
   tl: {
     orderSheet: 'ORDER SHEET', colorChanges: 'Pagbabago ng Kulay', additionalRequests: 'Karagdagang Kahilingan',
@@ -210,7 +210,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Burda', nameLabel: 'Teksto', flagLabel: 'Bandila', borderLabel: 'Gilid',
     noNameEmb: 'Walang burda ng pangalan', noFlagEmb: 'Walang burda ng bandila', shipTo: 'Ipadala sa',
     messageToCraftsman: '✍️ Mensahe para sa Manggagawa', noMessage: 'Walang mensahe',
-    confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', pad: 'PAD', hood: 'HOOD', inner: 'Loob', addOns: 'Mga Add-on',
+    confirmOrder: '✅ KUMPIRMAHIN ANG ORDER', confirmed: '✅ NAKUMPIRMA', modifyOrder: '✏️ I-edit', confirmReminder: 'Pakisuri muli ang spelling ng pangalang ibuburda at ang shipping address — hindi na maaaring baguhin pagkatapos magbayad.', pad: 'PAD', hood: 'HOOD', inner: 'Loob', addOns: 'Mga Add-on',
   },
   pt: {
     orderSheet: 'FOLHA DE PEDIDO', colorChanges: 'Alterações de Cor', additionalRequests: 'Pedidos Adicionais',
@@ -221,7 +221,7 @@ const LABELS: { [lang: string]: UILabels } = {
     embroidery: 'Bordado', nameLabel: 'Texto', flagLabel: 'Bandeira', borderLabel: 'Contorno',
     noNameEmb: 'Sem bordado de nome', noFlagEmb: 'Sem bordado de bandeira', shipTo: 'Enviar para',
     messageToCraftsman: '✍️ Mensagem para o Artesão', noMessage: 'Sem mensagem',
-    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno', addOns: 'Adicionais',
+    confirmOrder: '✅ CONFIRMAR PEDIDO', confirmed: '✅ CONFIRMADO', modifyOrder: '✏️ Editar', confirmReminder: 'Confira novamente a grafia do nome bordado e o endereço de entrega — não é possível alterar após o pagamento.', pad: 'ALMOFADA', hood: 'CAPUZ', inner: 'Interno', addOns: 'Adicionais',
   },
 };
 
@@ -426,10 +426,12 @@ function ReferencePhotos({
 export default function OrderSheet({
   orderData,
   onConfirm,
+  onModify,
   variant = 'customer',
 }: {
   orderData: OrderData;
   onConfirm: () => void;
+  onModify?: () => void;
   variant?: 'customer' | 'factory';
 }) {
   const [confirmed, setConfirmed] = React.useState(false);
@@ -958,29 +960,57 @@ export default function OrderSheet({
         GN GLOVE · WE MAKE IT. YOU PLAY IT. · 30dayglove.com
       </div>
 
-      {/* ── CONFIRM BUTTON ─────────────────────────────────────── */}
+      {/* ── CONFIRM / EDIT BUTTONS ─────────────────────────────── */}
       <div id="confirm-btn-area" className="print:hidden">
-        <button
-          onClick={handleConfirm}
-          disabled={confirmed}
-          style={{
-            width: '100%',
-            background: confirmed ? '#555' : '#111',
-            color: 'white',
-            border: 'none',
-            padding: '13px',
-            fontSize: '14px',
-            fontWeight: 700,
-            letterSpacing: '3px',
-            borderRadius: '6px',
-            cursor: confirmed ? 'not-allowed' : 'pointer',
-            marginTop: '14px',
-            opacity: confirmed ? 0.6 : 1,
-            transition: 'all 0.2s',
-          }}
-        >
-          {confirmed ? t.confirmed : t.confirmOrder}
-        </button>
+        {/* 결제 후에는 수정이 불가하므로, 확정 전 마지막 방어선으로 오타(자수 이름/배송지 등)를
+            자연어로 되돌아가 고칠 수 있는 "수정" 버튼을 함께 둔다. onModify가 있을 때만(고객용) 노출. */}
+        {onModify && !confirmed && (
+          <div style={{ fontSize: '11px', color: '#999', textAlign: 'center', marginTop: '14px', marginBottom: '8px', lineHeight: 1.5 }}>
+            {t.confirmReminder}
+          </div>
+        )}
+        <div style={{ display: 'flex', gap: '8px', marginTop: onModify && !confirmed ? 0 : '14px' }}>
+          {onModify && !confirmed && (
+            <button
+              onClick={onModify}
+              style={{
+                flex: 1,
+                background: '#fff',
+                color: '#111',
+                border: '1.5px solid #111',
+                padding: '13px',
+                fontSize: '14px',
+                fontWeight: 700,
+                letterSpacing: '1px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {t.modifyOrder}
+            </button>
+          )}
+          <button
+            onClick={handleConfirm}
+            disabled={confirmed}
+            style={{
+              flex: 2,
+              background: confirmed ? '#555' : '#111',
+              color: 'white',
+              border: 'none',
+              padding: '13px',
+              fontSize: '14px',
+              fontWeight: 700,
+              letterSpacing: '3px',
+              borderRadius: '6px',
+              cursor: confirmed ? 'not-allowed' : 'pointer',
+              opacity: confirmed ? 0.6 : 1,
+              transition: 'all 0.2s',
+            }}
+          >
+            {confirmed ? t.confirmed : t.confirmOrder}
+          </button>
+        </div>
       </div>
     </div>
   );
