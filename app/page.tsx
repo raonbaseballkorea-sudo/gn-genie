@@ -430,18 +430,18 @@ export default function ChatPage() {
   // 첫 인사말 — 내용이 항상 고정이라 AI가 아니라 코드가 즉시 띄운다(진입 지연·문구 드리프트 제거).
   // 후속 Q&A만 AI(mode:'faq')가 담당. intro는 마크다운을 렌더하지 않으므로 순수 텍스트로 작성.
   const INTRO_GREETING: Record<Lang, string> = {
-    en: 'Hello! 👋 Welcome to GN Glove!\n\nWe make custom baseball/softball gloves, and every glove is a flat $169 — with no extra charges at all. Color changes, embroidery, logos… everything is included.\n\nOrdering is simple:\n1. Upload 1–4 reference photos, or pick a glove from our catalog.\n2. Answer about 10 quick questions to build your glove.\n3. It ships within 30 days of payment.\n\nHave any questions? Feel free to ask — or just tap the button below to get started! 😊',
-    ko: '안녕하세요! 👋 GN Glove에 오신 것을 환영합니다!\n\n저희는 맞춤형 야구/소프트볼 글러브를 만들며, 모든 글러브가 $169 — 추가 비용이 전혀 없습니다. 색상 변경, 자수, 로고까지 모두 포함이에요.\n\n주문 방식은 간단합니다:\n1. 원하는 글러브 사진(1~4장)을 올리거나 카탈로그에서 선택하고\n2. 약 10개의 간단한 질문에 답하면 끝이에요.\n3. 결제 후 30일 안에 배송됩니다.\n\n궁금한 점이 있으면 편하게 물어보세요. 바로 시작하시려면 아래 버튼을 눌러주세요! 😊',
-    ja: 'こんにちは！👋 GN Glove へようこそ！\n\n当店はカスタム野球・ソフトボールグラブを制作しており、どのグラブも一律 $169 — 追加料金は一切ありません。カラー変更・刺繍・ロゴまですべて込みです。\n\nご注文はかんたん：\n1. お好きなグラブの写真（1〜4枚）をアップロード、またはカタログから選択\n2. 約10問のかんたんな質問に答えるだけ\n3. お支払いから30日以内に発送します。\n\nご質問があればお気軽にどうぞ。すぐ始めるには下のボタンを押してください！😊',
-    zh: '您好！👋 欢迎来到 GN Glove！\n\n我们制作定制棒球/垒球手套，每副手套统一 $169 — 完全没有额外费用。改色、刺绣、徽标……全部包含在内。\n\n下单很简单：\n1. 上传1~4张参考照片，或从目录中选择一副手套\n2. 回答约10个简单问题来定制您的手套\n3. 付款后30天内发货。\n\n有任何问题都可以问我，或直接点击下方按钮开始吧！😊',
-    es: '¡Hola! 👋 ¡Bienvenido a GN Glove!\n\nHacemos guantes de béisbol/softbol a medida, y cada guante cuesta $169 — sin cargos adicionales. Cambios de color, bordados, logos… todo está incluido.\n\nPedir es sencillo:\n1. Sube de 1 a 4 fotos de referencia, o elige un guante de nuestro catálogo.\n2. Responde unas 10 preguntas rápidas para crear tu guante.\n3. Se envía dentro de los 30 días tras el pago.\n\n¿Tienes preguntas? Pregúntame — o simplemente toca el botón de abajo para empezar. 😊',
-    fr: 'Bonjour ! 👋 Bienvenue chez GN Glove !\n\nNous fabriquons des gants de baseball/softball sur mesure, et chaque gant est à $169 — sans aucun frais supplémentaire. Changements de couleur, broderies, logos… tout est inclus.\n\nCommander est simple :\n1. Téléchargez 1 à 4 photos de référence, ou choisissez un gant dans notre catalogue.\n2. Répondez à une dizaine de questions rapides pour créer votre gant.\n3. Livraison sous 30 jours après paiement.\n\nDes questions ? N’hésitez pas — ou appuyez sur le bouton ci-dessous pour commencer ! 😊',
-    de: 'Hallo! 👋 Willkommen bei GN Glove!\n\nWir fertigen individuelle Baseball-/Softball-Handschuhe, und jeder Handschuh kostet pauschal $169 — ganz ohne Aufpreis. Farbänderungen, Stickereien, Logos… alles ist inklusive.\n\nBestellen ist einfach:\n1. Lade 1–4 Referenzfotos hoch oder wähle einen Handschuh aus unserem Katalog.\n2. Beantworte rund 10 kurze Fragen, um deinen Handschuh zu gestalten.\n3. Versand innerhalb von 30 Tagen nach Zahlung.\n\nFragen? Frag einfach — oder tippe unten auf den Button, um zu starten! 😊',
-    it: 'Ciao! 👋 Benvenuto in GN Glove!\n\nRealizziamo guanti da baseball/softball su misura, e ogni guanto costa $169 — senza costi aggiuntivi. Cambi colore, ricami, loghi… è tutto incluso.\n\nOrdinare è semplice:\n1. Carica da 1 a 4 foto di riferimento, o scegli un guanto dal catalogo.\n2. Rispondi a circa 10 domande veloci per creare il tuo guanto.\n3. Spedizione entro 30 giorni dal pagamento.\n\nHai domande? Chiedi pure — oppure tocca il pulsante qui sotto per iniziare! 😊',
-    nl: 'Hallo! 👋 Welkom bij GN Glove!\n\nWij maken op maat gemaakte honkbal-/softbalhandschoenen, en elke handschoen kost $169 — zonder extra kosten. Kleurwijzigingen, borduurwerk, logo’s… alles is inbegrepen.\n\nBestellen is eenvoudig:\n1. Upload 1–4 referentiefoto’s, of kies een handschoen uit onze catalogus.\n2. Beantwoord ongeveer 10 korte vragen om je handschoen samen te stellen.\n3. Verzending binnen 30 dagen na betaling.\n\nVragen? Stel ze gerust — of tik op de knop hieronder om te beginnen! 😊',
-    th: 'สวัสดี! 👋 ยินดีต้อนรับสู่ GN Glove!\n\nเราทำถุงมือเบสบอล/ซอฟต์บอลแบบสั่งทำ ทุกใบราคาเดียว $169 — ไม่มีค่าใช้จ่ายเพิ่มเลย เปลี่ยนสี ปักชื่อ โลโก้… รวมทั้งหมดแล้ว\n\nสั่งซื้อง่ายมาก:\n1. อัปโหลดรูปอ้างอิง 1–4 รูป หรือเลือกถุงมือจากแคตตาล็อก\n2. ตอบคำถามสั้นๆ ประมาณ 10 ข้อเพื่อสร้างถุงมือของคุณ\n3. จัดส่งภายใน 30 วันหลังชำระเงิน\n\nมีคำถามไหม? ถามได้เลย หรือกดปุ่มด้านล่างเพื่อเริ่มได้เลย! 😊',
-    tl: 'Kumusta! 👋 Maligayang pagdating sa GN Glove!\n\nGumagawa kami ng custom na baseball/softball gloves, at bawat glove ay $169 — walang anumang dagdag na bayad. Pagbabago ng kulay, burda, logo… kasama na lahat.\n\nMadali lang mag-order:\n1. Mag-upload ng 1–4 na reference photo, o pumili ng glove sa aming catalog.\n2. Sagutin ang mga 10 mabilis na tanong para buuin ang iyong glove.\n3. Ipapadala sa loob ng 30 araw pagkatapos magbayad.\n\nMay tanong? Magtanong lang — o pindutin ang button sa ibaba para magsimula! 😊',
-    pt: 'Olá! 👋 Bem-vindo à GN Glove!\n\nFazemos luvas de beisebol/softbol personalizadas, e cada luva custa $169 — sem nenhuma taxa extra. Mudanças de cor, bordados, logos… está tudo incluído.\n\nFazer o pedido é simples:\n1. Envie de 1 a 4 fotos de referência, ou escolha uma luva no nosso catálogo.\n2. Responda a cerca de 10 perguntas rápidas para criar a sua luva.\n3. Enviamos em até 30 dias após o pagamento.\n\nTem dúvidas? É só perguntar — ou toque no botão abaixo para começar! 😊',
+    en: 'Hello! 👋 Welcome to GN Glove!\n\nWe make custom baseball/softball gloves from a photo — whether one from our catalog or a photo you share with us. We recreate its pattern, colors, and web (netting) shape from that photo; only the finer details like sizing are asked in text.\n\nOrdering is simple:\n1. Upload 1–4 reference photos, or pick a glove from our catalog.\n2. Answer about 10 quick questions to build your glove.\n3. It ships within 30 days of payment.\n\nHave any questions? Feel free to ask — or just tap the button below to get started! 😊',
+    ko: '안녕하세요! 👋 GN Glove에 오신 것을 환영합니다!\n\n저희는 사진을 기반으로 맞춤형 야구/소프트볼 글러브를 제작합니다. 저희 자료실 사진이든 고객님이 직접 보여주신 사진이든, 그 사진의 패턴·색상·웹(그물) 모양 그대로 만들어드려요. 사이즈 같은 세부사항만 질문으로 확인합니다.\n\n주문 방식은 간단합니다:\n1. 원하는 글러브 사진(1~4장)을 올리거나 카탈로그에서 선택하고\n2. 약 10개의 간단한 질문에 답하면 끝이에요.\n3. 결제 후 30일 안에 배송됩니다.\n\n궁금한 점이 있으면 편하게 물어보세요. 바로 시작하시려면 아래 버튼을 눌러주세요! 😊',
+    ja: 'こんにちは！👋 GN Glove へようこそ！\n\n当店は写真をもとにカスタム野球・ソフトボールグラブをお作りします。当店のカタログの写真でも、お客様がお見せくださる写真でも、その模様・色・ウェブ（網）の形をそのまま再現します。サイズなどの細かな点だけ質問で確認します。\n\nご注文はかんたん：\n1. お好きなグラブの写真（1〜4枚）をアップロード、またはカタログから選択\n2. 約10問のかんたんな質問に答えるだけ\n3. お支払いから30日以内に発送します。\n\nご質問があればお気軽にどうぞ。すぐ始めるには下のボタンを押してください！😊',
+    zh: '您好！👋 欢迎来到 GN Glove！\n\n我们根据照片制作定制棒球/垒球手套。无论是我们目录中的照片，还是您提供的照片，我们都会按照其图案、颜色和网兜（web）形状原样还原。只有尺寸等细节会通过提问确认。\n\n下单很简单：\n1. 上传1~4张参考照片，或从目录中选择一副手套\n2. 回答约10个简单问题来定制您的手套\n3. 付款后30天内发货。\n\n有任何问题都可以问我，或直接点击下方按钮开始吧！😊',
+    es: '¡Hola! 👋 ¡Bienvenido a GN Glove!\n\nHacemos guantes de béisbol/softbol a medida a partir de una foto: ya sea una de nuestro catálogo o una que nos compartas. Reproducimos su patrón, colores y forma del web (tejido) tal cual; solo preguntamos por detalles como la talla.\n\nPedir es sencillo:\n1. Sube de 1 a 4 fotos de referencia, o elige un guante de nuestro catálogo.\n2. Responde unas 10 preguntas rápidas para crear tu guante.\n3. Se envía dentro de los 30 días tras el pago.\n\n¿Tienes preguntas? Pregúntame — o simplemente toca el botón de abajo para empezar. 😊',
+    fr: 'Bonjour ! 👋 Bienvenue chez GN Glove !\n\nNous fabriquons des gants de baseball/softball sur mesure à partir d’une photo : la nôtre (catalogue) ou celle que vous nous montrez. Nous en reproduisons le motif, les couleurs et la forme du filet (web) à l’identique ; nous ne demandons que les détails comme la taille.\n\nCommander est simple :\n1. Téléchargez 1 à 4 photos de référence, ou choisissez un gant dans notre catalogue.\n2. Répondez à une dizaine de questions rapides pour créer votre gant.\n3. Livraison sous 30 jours après paiement.\n\nDes questions ? N’hésitez pas — ou appuyez sur le bouton ci-dessous pour commencer ! 😊',
+    de: 'Hallo! 👋 Willkommen bei GN Glove!\n\nWir fertigen individuelle Baseball-/Softball-Handschuhe nach einem Foto — aus unserem Katalog oder von dir. Wir übernehmen Muster, Farben und die Form des Netzes (Web) genau so; nur Details wie die Größe fragen wir ab.\n\nBestellen ist einfach:\n1. Lade 1–4 Referenzfotos hoch oder wähle einen Handschuh aus unserem Katalog.\n2. Beantworte rund 10 kurze Fragen, um deinen Handschuh zu gestalten.\n3. Versand innerhalb von 30 Tagen nach Zahlung.\n\nFragen? Frag einfach — oder tippe unten auf den Button, um zu starten! 😊',
+    it: 'Ciao! 👋 Benvenuto in GN Glove!\n\nRealizziamo guanti da baseball/softball su misura a partire da una foto: dal nostro catalogo o da una che ci mostri. Ne riproduciamo fedelmente il motivo, i colori e la forma della rete (web); chiediamo solo dettagli come la taglia.\n\nOrdinare è semplice:\n1. Carica da 1 a 4 foto di riferimento, o scegli un guanto dal catalogo.\n2. Rispondi a circa 10 domande veloci per creare il tuo guanto.\n3. Spedizione entro 30 giorni dal pagamento.\n\nHai domande? Chiedi pure — oppure tocca il pulsante qui sotto per iniziare! 😊',
+    nl: 'Hallo! 👋 Welkom bij GN Glove!\n\nWij maken op maat gemaakte honkbal-/softbalhandschoenen op basis van een foto — uit onze catalogus of een die jij deelt. We nemen het patroon, de kleuren en de vorm van het web (net) exact over; we vragen alleen naar details zoals de maat.\n\nBestellen is eenvoudig:\n1. Upload 1–4 referentiefoto’s, of kies een handschoen uit onze catalogus.\n2. Beantwoord ongeveer 10 korte vragen om je handschoen samen te stellen.\n3. Verzending binnen 30 dagen na betaling.\n\nVragen? Stel ze gerust — of tik op de knop hieronder om te beginnen! 😊',
+    th: 'สวัสดี! 👋 ยินดีต้อนรับสู่ GN Glove!\n\nเราผลิตถุงมือเบสบอล/ซอฟต์บอลแบบสั่งทำจากรูปถ่าย ไม่ว่าจะเป็นรูปจากแคตตาล็อกของเราหรือรูปที่คุณส่งมา เราจะทำตามลาย สี และรูปทรงของเว็บ (ตาข่าย) ให้เหมือนต้นแบบ โดยจะถามเฉพาะรายละเอียด เช่น ขนาด เท่านั้น\n\nสั่งซื้อง่ายมาก:\n1. อัปโหลดรูปอ้างอิง 1–4 รูป หรือเลือกถุงมือจากแคตตาล็อก\n2. ตอบคำถามสั้นๆ ประมาณ 10 ข้อเพื่อสร้างถุงมือของคุณ\n3. จัดส่งภายใน 30 วันหลังชำระเงิน\n\nมีคำถามไหม? ถามได้เลย หรือกดปุ่มด้านล่างเพื่อเริ่มได้เลย! 😊',
+    tl: 'Kumusta! 👋 Maligayang pagdating sa GN Glove!\n\nGumagawa kami ng custom na baseball/softball gloves batay sa larawan — mula man sa aming catalog o sa larawang ibabahagi mo. Kinokopya namin ang pattern, kulay, at hugis ng web (lambat) nito nang eksakto; ang mga detalye lang tulad ng sukat ang itatanong namin.\n\nMadali lang mag-order:\n1. Mag-upload ng 1–4 na reference photo, o pumili ng glove sa aming catalog.\n2. Sagutin ang mga 10 mabilis na tanong para buuin ang iyong glove.\n3. Ipapadala sa loob ng 30 araw pagkatapos magbayad.\n\nMay tanong? Magtanong lang — o pindutin ang button sa ibaba para magsimula! 😊',
+    pt: 'Olá! 👋 Bem-vindo à GN Glove!\n\nFazemos luvas de beisebol/softbol personalizadas a partir de uma foto — do nosso catálogo ou uma que você mostrar. Reproduzimos o padrão, as cores e o formato do web (rede) fielmente; só perguntamos detalhes como o tamanho.\n\nFazer o pedido é simples:\n1. Envie de 1 a 4 fotos de referência, ou escolha uma luva no nosso catálogo.\n2. Responda a cerca de 10 perguntas rápidas para criar a sua luva.\n3. Enviamos em até 30 dias após o pagamento.\n\nTem dúvidas? É só perguntar — ou toque no botão abaixo para começar! 😊',
   };
 
   // 언어 스텝에서 언어 버튼 클릭 시 — 언어를 확정하고 intro(주문방법 안내/Q&A) 스텝으로 이동.
@@ -1135,19 +1135,19 @@ export default function ChatPage() {
     pt: { '1': 'Polegar', '2': 'Indicador', '3': 'Médio', '4': 'Anelar', '5': 'Mínimo', '7': 'Rede', '9': 'Interno' },
   };
 
-  const LOC_PICKER_TEXT: Record<Lang, { heading: string; webNameNote: string; webFlagNote: string }> = {
-    en: { heading: 'Where would you like it?', webNameNote: 'The web fits only 2 characters — please choose another position.', webFlagNote: 'The web is too small for a flag — please choose another position.' },
-    ko: { heading: '어느 위치에 자수할까요?', webNameNote: '웹에는 2자까지만 들어가요. 다른 위치를 선택해주세요.', webFlagNote: '웹은 국기를 넣기엔 너무 좁아요. 다른 위치를 선택해주세요.' },
-    ja: { heading: 'どの位置に刺繍しますか？', webNameNote: 'ウェブには2文字までしか入りません。別の位置を選んでください。', webFlagNote: 'ウェブは国旗を入れるには狭すぎます。別の位置を選んでください。' },
-    zh: { heading: '想绣在哪个位置？', webNameNote: '网兜只能容纳2个字符，请选择其他位置。', webFlagNote: '网兜太窄，放不下旗帜，请选择其他位置。' },
-    es: { heading: '¿Dónde lo bordamos?', webNameNote: 'La red solo admite 2 caracteres — elige otra posición.', webFlagNote: 'La red es demasiado pequeña para una bandera — elige otra posición.' },
-    fr: { heading: 'Où le broder ?', webNameNote: "La toile n'accepte que 2 caractères — choisissez un autre emplacement.", webFlagNote: 'La toile est trop petite pour un drapeau — choisissez un autre emplacement.' },
-    de: { heading: 'Wo soll es hin?', webNameNote: 'Ins Netz passen nur 2 Zeichen — bitte wähle eine andere Position.', webFlagNote: 'Das Netz ist zu klein für eine Flagge — bitte wähle eine andere Position.' },
-    it: { heading: 'Dove ricamarlo?', webNameNote: 'La web contiene solo 2 caratteri — scegli un\'altra posizione.', webFlagNote: 'La web è troppo piccola per una bandiera — scegli un\'altra posizione.' },
-    nl: { heading: 'Waar wil je het?', webNameNote: 'In het web passen maar 2 tekens — kies een andere positie.', webFlagNote: 'Het web is te klein voor een vlag — kies een andere positie.' },
-    th: { heading: 'ต้องการปักตรงไหน?', webNameNote: 'เว็บใส่ได้แค่ 2 ตัวอักษร กรุณาเลือกตำแหน่งอื่น', webFlagNote: 'เว็บเล็กเกินไปสำหรับธง กรุณาเลือกตำแหน่งอื่น' },
-    tl: { heading: 'Saan mo gusto?', webNameNote: 'Dalawang karakter lang ang kasya sa web — pumili ng ibang posisyon.', webFlagNote: 'Masyadong maliit ang web para sa bandila — pumili ng ibang posisyon.' },
-    pt: { heading: 'Onde bordar?', webNameNote: 'A rede comporta apenas 2 caracteres — escolha outra posição.', webFlagNote: 'A rede é pequena demais para uma bandeira — escolha outra posição.' },
+  const LOC_PICKER_TEXT: Record<Lang, { heading: string; webNameNote: string; webFlagNote: string; indexPadNote: string }> = {
+    en: { heading: 'Where would you like it?', webNameNote: 'The web fits only 2 characters — please choose another position.', webFlagNote: 'The web is too small for a flag — please choose another position.', indexPadNote: 'The index finger has a pad, so embroidery isn\'t possible there — please choose another position.' },
+    ko: { heading: '어느 위치에 자수할까요?', webNameNote: '웹에는 2자까지만 들어가요. 다른 위치를 선택해주세요.', webFlagNote: '웹은 국기를 넣기엔 너무 좁아요. 다른 위치를 선택해주세요.', indexPadNote: '검지에 패드가 있어 자수가 불가능해요. 다른 위치를 선택해주세요.' },
+    ja: { heading: 'どの位置に刺繍しますか？', webNameNote: 'ウェブには2文字までしか入りません。別の位置を選んでください。', webFlagNote: 'ウェブは国旗を入れるには狭すぎます。別の位置を選んでください。', indexPadNote: '人差し指にはパッドがあるため刺繍できません。別の位置を選んでください。' },
+    zh: { heading: '想绣在哪个位置？', webNameNote: '网兜只能容纳2个字符，请选择其他位置。', webFlagNote: '网兜太窄，放不下旗帜，请选择其他位置。', indexPadNote: '食指有护垫，无法刺绣，请选择其他位置。' },
+    es: { heading: '¿Dónde lo bordamos?', webNameNote: 'La red solo admite 2 caracteres — elige otra posición.', webFlagNote: 'La red es demasiado pequeña para una bandera — elige otra posición.', indexPadNote: 'El dedo índice lleva una almohadilla, así que no se puede bordar ahí — elige otra posición.' },
+    fr: { heading: 'Où le broder ?', webNameNote: "La toile n'accepte que 2 caractères — choisissez un autre emplacement.", webFlagNote: 'La toile est trop petite pour un drapeau — choisissez un autre emplacement.', indexPadNote: "L'index comporte un coussinet, la broderie n'y est donc pas possible — choisissez un autre emplacement." },
+    de: { heading: 'Wo soll es hin?', webNameNote: 'Ins Netz passen nur 2 Zeichen — bitte wähle eine andere Position.', webFlagNote: 'Das Netz ist zu klein für eine Flagge — bitte wähle eine andere Position.', indexPadNote: 'Der Zeigefinger hat ein Polster, dort ist keine Stickerei möglich — bitte wähle eine andere Position.' },
+    it: { heading: 'Dove ricamarlo?', webNameNote: 'La web contiene solo 2 caratteri — scegli un\'altra posizione.', webFlagNote: 'La web è troppo piccola per una bandiera — scegli un\'altra posizione.', indexPadNote: 'L\'indice ha un\'imbottitura, quindi non è possibile ricamarci — scegli un\'altra posizione.' },
+    nl: { heading: 'Waar wil je het?', webNameNote: 'In het web passen maar 2 tekens — kies een andere positie.', webFlagNote: 'Het web is te klein voor een vlag — kies een andere positie.', indexPadNote: 'De wijsvinger heeft een kussentje, dus borduren is daar niet mogelijk — kies een andere positie.' },
+    th: { heading: 'ต้องการปักตรงไหน?', webNameNote: 'เว็บใส่ได้แค่ 2 ตัวอักษร กรุณาเลือกตำแหน่งอื่น', webFlagNote: 'เว็บเล็กเกินไปสำหรับธง กรุณาเลือกตำแหน่งอื่น', indexPadNote: 'นิ้วชี้มีแผ่นรอง จึงไม่สามารถปักได้ กรุณาเลือกตำแหน่งอื่น' },
+    tl: { heading: 'Saan mo gusto?', webNameNote: 'Dalawang karakter lang ang kasya sa web — pumili ng ibang posisyon.', webFlagNote: 'Masyadong maliit ang web para sa bandila — pumili ng ibang posisyon.', indexPadNote: 'May pad ang hintuturo kaya hindi puwedeng burdahan doon — pumili ng ibang posisyon.' },
+    pt: { heading: 'Onde bordar?', webNameNote: 'A rede comporta apenas 2 caracteres — escolha outra posição.', webFlagNote: 'A rede é pequena demais para uma bandeira — escolha outra posição.', indexPadNote: 'O dedo indicador tem uma almofada, então não é possível bordar ali — escolha outra posição.' },
   };
 
   const sendLocationChoice = (n: FingerNum, label: string) => {
@@ -1358,15 +1358,23 @@ export default function ChatPage() {
 
   // 자수/국기 위치 피커 — context('name'|'flag')와 텍스트 길이로 웹(#7) 가용성을 결정.
   // 웹은 투수 전용 + (이름) 2자 초과 시 비활성 + (국기) 항상 비활성.
-  const renderLocationPicker = (context: 'name' | 'flag', text: string) => {
+  const renderLocationPicker = (context: 'name' | 'flag', text: string, blockIndex = false) => {
     const lang = selectedLanguage || 'en';
     const labels = FINGER_LABELS[lang];
     const lt = LOC_PICKER_TEXT[lang];
-    const isPitcher = specAnswersRef.current.position === 'pitcher';
+    const position = specAnswersRef.current.position;
+    const isPitcher = position === 'pitcher';
+    const isCatcher = position === 'catcher';
     const textLen = Array.from((text || '').trim()).length;
-    const nums: FingerNum[] = isPitcher ? ['1', '2', '3', '4', '5', '7', '9'] : ['1', '2', '3', '4', '5', '9'];
+    // 포수미트는 글러브 패턴상 중지(3)·약지(4)에 자수 불가 — 엄지/검지/새끼/내피만 노출.
+    const nums: FingerNum[] = isCatcher
+      ? ['1', '2', '5', '9']
+      : isPitcher
+        ? ['1', '2', '3', '4', '5', '7', '9']
+        : ['1', '2', '3', '4', '5', '9'];
     const webBlocked = context === 'flag' || (context === 'name' && textLen > 2);
-    const isDisabled = (n: FingerNum) => n === '7' && webBlocked;
+    // 검지(2) 차단 — AI가 [NO_INDEX_EMB] 신호를 보낸 경우(검지 패드가 있어 자수 불가).
+    const isDisabled = (n: FingerNum) => (n === '7' && webBlocked) || (n === '2' && blockIndex);
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
         <span style={{ fontSize: '13px', color: '#facc15', fontWeight: 700 }}>{lt.heading}</span>
@@ -1395,6 +1403,9 @@ export default function ChatPage() {
         </div>
         {nums.includes('7') && webBlocked && (
           <span style={{ fontSize: '12px', color: '#9ca3af' }}>{context === 'flag' ? lt.webFlagNote : lt.webNameNote}</span>
+        )}
+        {nums.includes('2') && blockIndex && (
+          <span style={{ fontSize: '12px', color: '#9ca3af' }}>{lt.indexPadNote}</span>
         )}
       </div>
     );
@@ -1995,6 +2006,10 @@ export default function ChatPage() {
     const hasFlagLoc = cleanContent.includes('[FLAG_LOC]');
     cleanContent = cleanContent.replace(/\[FLAG_LOC\]/g, '').trim();
 
+    // [NO_INDEX_EMB] — 포수미트에 검지 패드가 있어 검지(#2) 자수 불가. AI가 위치 태그와 함께 실어보냄.
+    const blockIndexEmb = cleanContent.includes('[NO_INDEX_EMB]');
+    cleanContent = cleanContent.replace(/\[NO_INDEX_EMB\]/g, '').trim();
+
     // [FLAG_PICK] 태그 감지 — 국기 나라 선택(기본 국기 1개 + 없음 + 타이핑)
     const hasFlagPick = cleanContent.includes('[FLAG_PICK]');
     cleanContent = cleanContent.replace(/\[FLAG_PICK\]/g, '').trim();
@@ -2039,9 +2054,9 @@ export default function ChatPage() {
         {hasLogoPick && renderLogoPicker()}
         {hasNameColorPick && renderNameColorPicker()}
         {hasBorderPick && renderBorderPicker()}
-        {hasNameLoc && renderLocationPicker('name', nameLocText)}
+        {hasNameLoc && renderLocationPicker('name', nameLocText, blockIndexEmb)}
         {hasFlagPick && renderFlagPicker()}
-        {hasFlagLoc && renderLocationPicker('flag', '')}
+        {hasFlagLoc && renderLocationPicker('flag', '', blockIndexEmb)}
         {hasCustomerForm && renderCustomerForm()}
         {hasChangesAsk && renderChangesAsk()}
         {hasChangeConfirm && renderChangeConfirm()}
