@@ -1154,21 +1154,29 @@ export default function ChatPage() {
     sendMessage(`${label} (#${n})`);
   };
 
-  // 언어→기본 국기 1개. es(스페인어)는 중남미가 공유해 대표 국기를 정할 수 없어 null(타이핑만).
-  // pt는 포르투갈 국기 파일이 없어 Brasil로. country는 /flags/<file>.png 파일명과 일치.
-  const DEFAULT_FLAG: Record<Lang, { country: string; label: string } | null> = {
-    en: { country: 'usa', label: 'USA' },
-    ko: { country: 'korea', label: '한국' },
-    ja: { country: 'japan', label: '日本' },
-    zh: { country: 'china', label: '中国' },
-    es: null,
-    fr: { country: 'france', label: 'France' },
-    de: { country: 'germany', label: 'Deutschland' },
-    it: { country: 'italy', label: 'Italia' },
-    nl: { country: 'netherlands', label: 'Nederland' },
-    th: { country: 'thailand', label: 'ไทย' },
-    tl: { country: 'philippines', label: 'Pilipinas' },
-    pt: { country: 'brazil', label: 'Brasil' },
+  // 언어→기본 추천 국기 목록. 여러 국가가 같은 언어를 쓰는 경우(영어/스페인어/포르투갈어)는
+  // 대표 국기를 여러 개 노출한다. country는 /flags/<file>.png 파일명과 일치.
+  const DEFAULT_FLAG: Record<Lang, { country: string; label: string }[]> = {
+    en: [{ country: 'usa', label: 'USA' }, { country: 'greatbritain', label: 'UK' }],
+    ko: [{ country: 'korea', label: '한국' }],
+    ja: [{ country: 'japan', label: '日本' }],
+    zh: [{ country: 'china', label: '中国' }],
+    // 스페인어권 야구 강국 6개
+    es: [
+      { country: 'spain', label: 'España' },
+      { country: 'dominican', label: 'Rep. Dominicana' },
+      { country: 'venezuela', label: 'Venezuela' },
+      { country: 'cuba', label: 'Cuba' },
+      { country: 'mexico', label: 'México' },
+      { country: 'puertorico', label: 'Puerto Rico' },
+    ],
+    fr: [{ country: 'france', label: 'France' }],
+    de: [{ country: 'germany', label: 'Deutschland' }],
+    it: [{ country: 'italy', label: 'Italia' }],
+    nl: [{ country: 'netherlands', label: 'Nederland' }],
+    th: [{ country: 'thailand', label: 'ไทย' }],
+    tl: [{ country: 'philippines', label: 'Pilipinas' }],
+    pt: [{ country: 'portugal', label: 'Portugal' }, { country: 'brazil', label: 'Brasil' }],
   };
 
   const FLAG_PICK_TEXT: Record<Lang, { none: string; typeHint: string }> = {
@@ -1191,13 +1199,14 @@ export default function ChatPage() {
 
   const renderFlagPicker = () => {
     const lang = selectedLanguage || 'en';
-    const def = DEFAULT_FLAG[lang];
+    const defs = DEFAULT_FLAG[lang];
     const ft = FLAG_PICK_TEXT[lang];
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-          {def && (
+          {defs.map((def) => (
             <button
+              key={def.country}
               onClick={() => sendFlagChoice(def.country)}
               style={{
                 display: 'flex', alignItems: 'center', gap: '8px',
@@ -1213,7 +1222,7 @@ export default function ChatPage() {
               />
               <span style={{ fontSize: '13px', fontWeight: 700, color: '#fff' }}>{def.label}</span>
             </button>
-          )}
+          ))}
           <button
             onClick={sendNoFlag}
             style={{
