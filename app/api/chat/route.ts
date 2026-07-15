@@ -21,6 +21,36 @@ function availableFlags(): Set<string> {
   return flagFilesCache;
 }
 
+// 표준 부위명 → colors 객체 키. 고객이 부위를 직접 지목한 변경은 colors가 정본이고,
+// 시각적 표현("빨간 가죽")은 color_changes가 정본 — 프롬프트가 그렇게 지시하지만 실측 결과
+// AI가 "웹→검정"을 color_changes로 보내는 사례가 있었다. 어느 쪽에 넣든 결과가 같도록 코드가 정규화한다.
+// colors.wrist는 주문서의 글러브 색상 렌더링을 구동하므로 잘못 새면 그림 색이 안 바뀐다.
+const STANDARD_COLOR_PARTS: { [part: string]: string } = {
+  wrist: 'wrist', shell: 'shell', welting: 'welting', lace: 'lace',
+  bridge: 'bridge', web: 'web', 'palm shell': 'palm_shell',
+  palm_shell: 'palm_shell', piping: 'piping',
+};
+
+// 부위명은 정확 일치만 옮긴다. 부분일치로 하면 "Finger Pad (Index) Added"나
+// 고객 자유표현("웹 근처 가죽")까지 잘못 끌려간다.
+function normalizeColorChanges(parsed: any) {
+  const changes = Array.isArray(parsed.color_changes) ? parsed.color_changes : [];
+  if (changes.length === 0) return;
+  parsed.colors = parsed.colors || {};
+  const kept: any[] = [];
+  for (const c of changes) {
+    const key = STANDARD_COLOR_PARTS[String(c?.part ?? '').trim().toLowerCase()];
+    if (!key) { kept.push(c); continue; }
+    // colors가 비어 있을 때만 채움 — AI가 양쪽에 넣었다면 colors를 정본으로 두고 중복만 제거
+    if (!String(parsed.colors[key] ?? '').trim()) {
+      parsed.colors[key] = c.color ?? '';
+      if (c.hex) parsed.colors[`${key}_hex`] = c.hex;
+      if (c.color_zh) parsed.colors[`${key}_zh`] = c.color_zh;
+    }
+  }
+  parsed.color_changes = kept;
+}
+
 // 보유하지 않은 국기일 때 다시 고르게 하는 안내 — 12개 언어
 const FLAG_UNAVAILABLE: { [lang: string]: string } = {
   en: 'Sorry — we don\'t carry that flag. Please choose another country or US state.',
@@ -575,6 +605,9 @@ export async function POST(req: NextRequest) {
         console.log('[ROUTE] No order_type field — not a valid order JSON');
         return NextResponse.json({ message: rawText });
       }
+
+      // 고객이 직접 지목한 표준 부위는 colors로 모아 정본을 하나로 만든다(양쪽 중복도 여기서 제거).
+      normalizeColorChanges(parsed);
 
       // 국기 파일명 검증(백스톱) — AI가 지어낸 파일명이면 주문을 완료시키지 않고 다시 고르게 한다.
       // 여기서 막지 않으면 주문서엔 깨진 이미지가, 공장 작업지시서엔 만들 수 없는 국기가 나간다.
