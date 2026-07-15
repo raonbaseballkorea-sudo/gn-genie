@@ -4,6 +4,14 @@ import { rateLimit, getClientIp } from '@/lib/rateLimit';
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+// 프롬프트 캐시 적중 로그. read가 0으로만 찍히면 캐시가 안 먹고 있다는 신호(비용 4배).
+function devLogCache(u: any) {
+  if (process.env.NODE_ENV === 'production') return;
+  console.log(
+    `[CACHE] write=${u?.cache_creation_input_tokens ?? 0} read=${u?.cache_read_input_tokens ?? 0} uncached=${u?.input_tokens ?? 0} out=${u?.output_tokens ?? 0}`
+  );
+}
+
 const LANGUAGE_NAMES: { [code: string]: string } = {
   en: 'English', ko: 'Korean', ja: 'Japanese', zh: 'Chinese', es: 'Spanish',
   fr: 'French', de: 'German', it: 'Italian', nl: 'Dutch', th: 'Thai', tl: 'Filipino', pt: 'Portuguese',
@@ -212,7 +220,6 @@ In both cases the app replies with a line like "Index (#2)" — record ONLY the 
 - Only show photos for glove collection options (classic, gelato, unique) using [SHOW_IMAGE: collection/filename.jpg]. Do NOT show photos for web styles as no web style photos are available.
 - Left-handed throwers (LHT) use right-handed photos as reference. Always note this.
 - If exact size is not available in photos, show closest size and note actual will be made in requested size
-__LANGUAGE_DIRECTIVE__
 - CRITICAL: When outputting ORDER_COMPLETE, you MUST output it in EVERY language. Do NOT replace ORDER_COMPLETE with a markdown table or summary. The ORDER_COMPLETE JSON block is MANDATORY and must ALWAYS appear at the end of the confirmation message, regardless of the conversation language.
 
 ## Flag embroidery — app-driven picker
@@ -468,7 +475,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ message: faqText });
   }
 
-  const systemPrompt = SYSTEM_PROMPT.replace('__LANGUAGE_DIRECTIVE__', languageDirective);
+  // 시스템 프롬프트를 2개 캐시 블록으로 분리 — 주문 1건에 API가 10여 회 호출되는데
+  // 매번 13K 토큰짜리 프롬프트를 정가로 재전송하던 것을 캐시 읽기(정가의 10%)로 바꾼다.
+  //  · 블록1(공용 본문): 12개 언어·모든 고객이 공유 → 적중률 최상
+  //  · 블록2(언어 지시문): 언어별로 갈리지만 뒤에 두어 블록1의 공유를 깨지 않음
+  // TTL 1h — 고객이 색상 고르며 뜸들이면 기본 5분 캐시는 만료되므로(주문 플로우 10~15분) 1시간으로.
+  const systemBlocks: any[] = [
+    { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral', ttl: '1h' } },
+    { type: 'text', text: languageDirective, cache_control: { type: 'ephemeral', ttl: '1h' } },
+  ];
 
   const validMessages = messages.filter((msg: any) => {
     if (typeof msg.content === 'string') return msg.content.trim().length > 0;
@@ -495,9 +510,13 @@ export async function POST(req: NextRequest) {
   const response = await anthropic.messages.create({
     model: 'claude-haiku-4-5-20251001',
     max_tokens: 4096,
-    system: systemPrompt,
+    system: systemBlocks,
     messages: formattedMessages,
   });
+
+  // 캐시 적중 여부 로그 — cache_read_input_tokens가 계속 0이면 프롬프트 앞부분이
+  // 매 요청 달라지고 있다는 뜻(캐시는 prefix 완전일치)이므로 바로 드러난다.
+  devLogCache(response.usage);
 
   const rawText = response.content[0].type === 'text' ? response.content[0].text : '';
 
