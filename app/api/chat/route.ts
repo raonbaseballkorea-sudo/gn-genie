@@ -1,6 +1,41 @@
 import { NextRequest, NextResponse } from 'next/server';
+import * as fs from 'fs';
+import * as path from 'path';
 import Anthropic from '@anthropic-ai/sdk';
 import { rateLimit, getClientIp } from '@/lib/rateLimit';
+
+// 실제 보유한 국기 파일명 — 프롬프트의 목록이 아니라 디스크가 진실이다.
+// AI가 없는 국기를 요청받으면 거절하지 않고 파일명을 지어내는 사례가 실측됨(케냐→"kenya",
+// 파일 없음). 매칭(뜻 알아듣기)은 AI에게 두되, "그 파일이 실재하는가"는 코드가 강제한다.
+let flagFilesCache: Set<string> | null = null;
+function availableFlags(): Set<string> {
+  if (flagFilesCache) return flagFilesCache;
+  try {
+    const dir = path.join(process.cwd(), 'public', 'flags');
+    flagFilesCache = new Set(
+      fs.readdirSync(dir).filter((f) => f.endsWith('.png')).map((f) => f.replace(/\.png$/, ''))
+    );
+  } catch {
+    flagFilesCache = new Set();
+  }
+  return flagFilesCache;
+}
+
+// 보유하지 않은 국기일 때 다시 고르게 하는 안내 — 12개 언어
+const FLAG_UNAVAILABLE: { [lang: string]: string } = {
+  en: 'Sorry — we don\'t carry that flag. Please choose another country or US state.',
+  ko: '죄송해요, 그 국기는 보유하고 있지 않습니다. 다른 나라나 미국 주를 선택해주세요.',
+  ja: '申し訳ありません、その国旗は取り扱っておりません。別の国または米国の州をお選びください。',
+  zh: '抱歉，我们没有该旗帜。请选择其他国家或美国州。',
+  es: 'Lo sentimos, no tenemos esa bandera. Elige otro país o estado de EE. UU.',
+  fr: 'Désolé, nous n\'avons pas ce drapeau. Veuillez choisir un autre pays ou État américain.',
+  de: 'Leider führen wir diese Flagge nicht. Bitte wähle ein anderes Land oder einen US-Bundesstaat.',
+  it: 'Spiacenti, non abbiamo quella bandiera. Scegli un altro paese o stato USA.',
+  nl: 'Sorry, die vlag hebben we niet. Kies een ander land of een Amerikaanse staat.',
+  th: 'ขออภัย เราไม่มีธงนั้น กรุณาเลือกประเทศหรือรัฐของสหรัฐฯ อื่น',
+  tl: 'Paumanhin, wala kaming ganoong bandila. Pumili ng ibang bansa o estado ng US.',
+  pt: 'Desculpe, não temos essa bandeira. Escolha outro país ou estado dos EUA.',
+};
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -539,6 +574,15 @@ export async function POST(req: NextRequest) {
       if (!parsed.order_type) {
         console.log('[ROUTE] No order_type field — not a valid order JSON');
         return NextResponse.json({ message: rawText });
+      }
+
+      // 국기 파일명 검증(백스톱) — AI가 지어낸 파일명이면 주문을 완료시키지 않고 다시 고르게 한다.
+      // 여기서 막지 않으면 주문서엔 깨진 이미지가, 공장 작업지시서엔 만들 수 없는 국기가 나간다.
+      const flagCountry = parsed.embroidery?.flag?.country;
+      if (flagCountry && !availableFlags().has(flagCountry)) {
+        console.warn('[ROUTE] Hallucinated flag filename rejected:', flagCountry);
+        const notice = FLAG_UNAVAILABLE[(language || 'en').toLowerCase()] || FLAG_UNAVAILABLE.en;
+        return NextResponse.json({ message: `${notice} [FLAG_PICK]` });
       }
 
       // 이메일 주입
