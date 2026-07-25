@@ -1,0 +1,3 @@
+name: Keep Supabase Alive
+on: {schedule: [{cron: "0 3 */3 * *"}], workflow_dispatch: {}}
+jobs: {ping: {runs-on: ubuntu-latest, steps: [{name: "Ping Supabase project", run: "curl -s -o /dev/null -w \"%{http_code}\" https://daovnahfgzdpgwdmxcac.supabase.co"}]}}
